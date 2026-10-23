@@ -1,0 +1,42 @@
+[project]
+name = "warehouse-qa"
+version = "0.1.0"
+description = "Governed, lineage-aware text-to-SQL over a dbt warehouse: graph-aware retrieval, database-enforced access policies, SQL verification, and calibrated clarify/abstain."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.12"
+dependencies = [
+    "warehouse-graph",
+]
+
+[tool.uv.sources]
+warehouse-graph = { git = "https://github.com/Crestward/warehouse-graph", tag = "v0.1.1" }
+
+[dependency-groups]
+dev = [
+    "mypy>=1.13",
+    "pytest>=8.3",
+    "ruff>=0.8",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/warehouse_qa"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "RUF"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+files = ["src", "tests"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
