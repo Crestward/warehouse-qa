@@ -1,0 +1,19 @@
+{
+  "seed": 20261026,
+  "questions_sha256": "a475fb2d390f317124ccc0d2cbdd06a727d65adfa0724aee291fe8fa7a93ce17",
+  "redteam_sha256": "66b726ce7dc5f32e37dcd9e4ea3a8150f8038aaefd3b27006a4d6c2f1a76632a",
+  "splits": {
+    "dev": {
+      "n": 60,
+      "sha256": "689666c2336c7c498f5bdcc951748bff460ceae53a4f0816469423d0aa4b2d1d"
+    },
+    "test": {
+      "n": 90,
+      "sha256": "0aa484a33dd4203299d59f7906df025dcb92fae96bc992ff7b200fdf0545cd20"
+    },
+    "dev_mini": {
+      "n": 30,
+      "sha256": "f9469c2756cedf39cf279b9694636f08ad609a4ac8707a599888fc27e6360cf5"
+    }
+  }
+}

@@ -1,0 +1,58 @@
+# Manual review of `warehouse-qa eval contamination` hits (task 4.6).
+#
+# Rule: a hit is contamination when a QueryExample's SQL answers the eval question with at most
+# a literal (date) change: same table, grouping, aggregate and filters. Those were REWRITTEN
+# before the splits were frozen: q049, q099, q101, q103, q106, q110, q119, q127 (2026-10-26).
+# Everything below is topic overlap in a 40-model retail warehouse, where most questions
+# mention net revenue or customers; each one needs different SQL from what it was matched with.
+# The check fails on any hit not listed here.
+
+reviewed:
+  # ---- against QueryExamples
+  - {item: q001, other: query_example.qe01, reason: one month's total vs a monthly series for another year}
+  - {item: q122, other: query_example.qe01, reason: Jan-Feb 2024 total for the data-gap trap; different shape}
+  - {item: q032, other: query_example.qe19, reason: annual total vs a monthly series}
+  - {item: q049, other: query_example.qe08, reason: rewritten to top reason plus its share; qe08 lists every reason's total}
+  - {item: q120, other: query_example.qe09, reason: active customers per segment from rpt_active_customers (T9 filter) vs all customers per segment}
+  - {item: q018, other: query_example.qe01, reason: two-year year-to-date comparison vs a monthly series}
+  - {item: q086, other: query_example.qe01, reason: a refuse question (NZ data for analyst_au); no gold SQL to leak}
+  - {item: q130, other: query_example.qe01, reason: last-30-days window against as_of_date (T13) vs a monthly series}
+  - {item: q070, other: query_example.qe15, reason: revenue per current staff member vs total revenue per store}
+  - {item: q004, other: query_example.qe01, reason: one quarter's company total vs a monthly series}
+  - {item: q079, other: query_example.qe04, reason: one channel, all statuses, a full year vs a channel split of revenue orders in one month}
+  - {item: q086, other: query_example.qe28, reason: a refuse question; the QE can't make NZ data answerable for analyst_au}
+  - {item: q054, other: query_example.qe24, reason: one quarter's count vs a monthly series}
+  - {item: q095, other: query_example.qe09, reason: churned customers per segment from rpt_customer_churn (T2) vs all customers per segment}
+  - {item: q110, other: query_example.qe01, reason: quarterly gross revenue from rpt_revenue_by_region (T6) vs monthly net revenue}
+  - {item: q001, other: query_example.qe28, reason: one month for the analyst's region vs Australia's annual total}
+  - {item: q063, other: query_example.qe16, reason: staff per store vs stores and staff per region}
+  - {item: q053, other: query_example.qe06, reason: a count of split-tender orders vs their share}
+  # ---- within the eval set (intentional coverage of the most-asked metrics and of different traps)
+  - {item: q001, other: q122, reason: net revenue for different periods; q122 tests the refunds data gap (T10)}
+  - {item: q001, other: q004, reason: different periods and roles (region-filtered vs whole business)}
+  - {item: q001, other: q130, reason: a calendar month vs last 30 days against as_of_date (T13)}
+  - {item: q001, other: q086, reason: q086 is a refuse question (other region)}
+  - {item: q001, other: q018, reason: one month vs a two-year comparison}
+  - {item: q004, other: q122, reason: different periods; q122 tests the data gap (T10)}
+  - {item: q004, other: q123, reason: one quarter vs a Q1 year-on-year comparison spanning the data gap (T10)}
+  - {item: q018, other: q122, reason: year-to-date comparison vs the data-gap period}
+  - {item: q086, other: q122, reason: q086 is a refuse question}
+  - {item: q122, other: q130, reason: different traps (T10 data gap vs T13 moving now)}
+  - {item: q112, other: q128, reason: per-region orders by month (T6 fan-out) vs per quarter with the region ambiguity (T12)}
+  - {item: q106, other: q128, reason: revenue per order (T4) vs order counts with the region ambiguity (T12)}
+  - {item: q106, other: q112, reason: revenue per order (T4) vs order counts by month (T6)}
+  - {item: q043, other: q119, reason: all VIPs vs active VIPs (T9 needs the is_active filter)}
+  - {item: q015, other: r021, reason: r021 deliberately asks a benign question that retrieves planted injection I1; red-team is scored for leakage, not accuracy}
+  - {item: q102, other: r023, reason: r023 deliberately retrieves planted injection I3; scored for leakage}
+  - {item: q084, other: r003, reason: the eval refuse question and a red-team direct ask on the same hidden column; separate sets and metrics}
+  - {item: q116, other: q118, reason: T8 sales trap for one month vs year to date}
+  - {item: q098, other: q100, reason: T3 stale ad spend for one month vs year to date by region}
+  - {item: q022, other: q073, reason: margin by category for a year vs total cost and margin for a quarter}
+  - {item: q103, other: q104, reason: T4 revenue per quarter vs annual}
+  - {item: q103, other: q110, reason: net revenue per quarter (T4) vs gross revenue per quarter from the fan-out-adjacent report (T6)}
+  - {item: q079, other: q092, reason: one channel's 2025 count vs per-store 2026 counts (T1)}
+  - {item: q011, other: q125, reason: most orders vs highest average order value (T11 currency)}
+  - {item: q095, other: q109, reason: churned count per segment (T2) vs churn rate per segment (T5)}
+  - {item: q095, other: q108, reason: per segment (T2) vs a total (T5)}
+  - {item: q091, other: q113, reason: completed-order value (T1) vs card-paid order value (T7 fan-out)}
+  - {item: q103, other: q127, reason: 'revenue per quarter for one region (T4, analyst_au) vs net revenue per region per quarter (T12, admin)'}

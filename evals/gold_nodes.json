@@ -1,0 +1,731 @@
+{
+ "q001": [
+  "column.fct_revenue_daily.net_revenue_nzd",
+  "column.fct_revenue_daily.revenue_date",
+  "model.fct_revenue_daily"
+ ],
+ "q002": [
+  "column.fct_orders.is_revenue_order",
+  "column.fct_orders.order_date",
+  "model.fct_orders"
+ ],
+ "q003": [
+  "column.fct_revenue_daily.gross_revenue_nzd",
+  "column.fct_revenue_daily.net_revenue_nzd",
+  "column.fct_revenue_daily.refunds_nzd",
+  "column.fct_revenue_daily.region_code",
+  "column.fct_revenue_daily.revenue_date",
+  "model.fct_revenue_daily"
+ ],
+ "q004": [
+  "column.fct_revenue_daily.net_revenue_nzd",
+  "column.fct_revenue_daily.revenue_date",
+  "model.fct_revenue_daily"
+ ],
+ "q005": [
+  "column.fct_revenue_daily.channel",
+  "column.fct_revenue_daily.net_revenue_nzd",
+  "column.fct_revenue_daily.revenue_date",
+  "model.fct_revenue_daily"
+ ],
+ "q006": [
+  "column.fct_revenue_daily.net_revenue_nzd",
+  "column.fct_revenue_daily.revenue_date",
+  "model.fct_revenue_daily"
+ ],
+ "q007": [
+  "column.fct_orders.is_revenue_order",
+  "column.fct_orders.order_date",
+  "column.fct_orders.order_total_nzd",
+  "column.fct_orders.region_code",
+  "model.fct_orders"
+ ],
+ "q008": [
+  "column.fct_orders.order_date",
+  "column.fct_orders.order_status",
+  "model.fct_orders"
+ ],
+ "q009": [
+  "column.fct_orders.order_status",
+  "model.fct_orders"
+ ],
+ "q010": [
+  "column.fct_orders.order_date",
+  "column.fct_orders.order_status",
+  "model.fct_orders"
+ ],
+ "q011": [
+  "column.dim_stores.store_id",
+  "column.dim_stores.store_name",
+  "column.fct_orders.is_revenue_order",
+  "column.fct_orders.order_date",
+  "column.fct_orders.store_id",
+  "model.dim_stores",
+  "model.fct_orders"
+ ],
+ "q012": [
+  "column.dim_stores.store_id",
+  "column.dim_stores.store_name",
+  "column.fct_orders.is_revenue_order",
+  "column.fct_orders.net_revenue_nzd",
+  "column.fct_orders.order_date",
+  "column.fct_orders.store_id",
+  "model.dim_stores",
+  "model.fct_orders"
+ ],
+ "q013": [
+  "column.fct_orders.fx_rate_to_nzd",
+  "column.fct_orders.is_revenue_order",
+  "column.fct_orders.order_date",
+  "column.fct_orders.shipping_fee",
+  "model.fct_orders"
+ ],
+ "q014": [
+  "column.fct_orders.discount_code",
+  "column.fct_orders.is_revenue_order",
+  "column.fct_orders.order_date",
+  "model.fct_orders"
+ ],
+ "q015": [
+  "column.fct_orders.discount_code",
+  "column.fct_orders.is_revenue_order",
+  "model.fct_orders"
+ ],
+ "q016": [
+  "column.fct_orders.is_revenue_order",
+  "column.fct_orders.order_date",
+  "column.fct_orders.units",
+  "model.fct_orders"
+ ],
+ "q017": [
+  "column.fct_revenue_daily.net_revenue_nzd",
+  "column.fct_revenue_daily.revenue_date",
+  "model.fct_revenue_daily"
+ ],
+ "q018": [
+  "column.fct_revenue_daily.net_revenue_nzd",
+  "column.fct_revenue_daily.revenue_date",
+  "model.fct_revenue_daily"
+ ],
+ "q019": [
+  "column.fct_orders.is_revenue_order",
+  "column.fct_orders.order_date",
+  "model.fct_orders"
+ ],
+ "q020": [
+  "column.fct_revenue_daily.gross_revenue_nzd",
+  "column.fct_revenue_daily.revenue_date",
+  "model.fct_revenue_daily"
+ ],
+ "q021": [
+  "column.fct_order_items.is_revenue_order",
+  "column.fct_order_items.order_date",
+  "column.fct_order_items.product_name",
+  "column.fct_order_items.quantity",
+  "model.fct_order_items"
+ ],
+ "q022": [
+  "column.fct_order_items.category",
+  "column.fct_order_items.is_revenue_order",
+  "column.fct_order_items.line_margin_nzd",
+  "column.fct_order_items.order_date",
+  "model.fct_order_items"
+ ],
+ "q023": [
+  "column.dim_products.is_active",
+  "model.dim_products"
+ ],
+ "q024": [
+  "column.dim_products.category",
+  "column.dim_products.list_margin_pct",
+  "model.dim_products"
+ ],
+ "q025": [
+  "column.fct_order_items.category",
+  "column.fct_order_items.is_revenue_order",
+  "column.fct_order_items.line_amount_nzd",
+  "column.fct_order_items.order_date",
+  "model.fct_order_items"
+ ],
+ "q026": [
+  "column.fct_order_items.is_revenue_order",
+  "column.fct_order_items.line_amount_nzd",
+  "column.fct_order_items.line_margin_nzd",
+  "column.fct_order_items.product_name",
+  "model.fct_order_items"
+ ],
+ "q027": [
+  "column.fct_order_items.category",
+  "column.fct_order_items.discount_amount",
+  "column.fct_order_items.is_revenue_order",
+  "column.fct_order_items.order_date",
+  "column.fct_order_items.order_id",
+  "column.fct_orders.fx_rate_to_nzd",
+  "column.fct_orders.order_id",
+  "model.fct_order_items",
+  "model.fct_orders"
+ ],
+ "q028": [
+  "column.dim_products.launched_on",
+  "column.dim_products.product_id",
+  "column.dim_products.product_name",
+  "model.dim_products"
+ ],
+ "q029": [
+  "column.fct_orders.is_revenue_order",
+  "column.fct_orders.line_count",
+  "model.fct_orders"
+ ],
+ "q030": [
+  "column.fct_order_items.category",
+  "column.fct_order_items.channel",
+  "column.fct_order_items.is_revenue_order",
+  "column.fct_order_items.order_date",
+  "column.fct_order_items.quantity",
+  "model.fct_order_items"
+ ],
+ "q031": [
+  "column.dim_customers.region_code",
+  "model.dim_customers"
+ ],
+ "q032": [
+  "column.dim_customers.signed_up_on",
+  "model.dim_customers"
+ ],
+ "q033": [
+  "column.dim_customers.acquisition_channel",
+  "column.dim_customers.lifetime_orders",
+  "model.dim_customers"
+ ],
+ "q034": [
+  "column.dim_customers.marketing_opt_in",
+  "model.dim_customers"
+ ],
+ "q035": [
+  "column.dim_customers.city",
+  "model.dim_customers"
+ ],
+ "q036": [
+  "column.rpt_customer_ltv.customer_segment",
+  "column.rpt_customer_ltv.net_ltv_nzd",
+  "column.rpt_customer_ltv.revenue_orders",
+  "model.rpt_customer_ltv"
+ ],
+ "q037": [
+  "column.dim_customers.customer_id",
+  "column.dim_customers.email",
+  "column.rpt_customer_ltv.customer_id",
+  "column.rpt_customer_ltv.net_ltv_nzd",
+  "model.dim_customers",
+  "model.rpt_customer_ltv"
+ ],
+ "q038": [
+  "column.dim_customers.lifetime_orders",
+  "model.dim_customers"
+ ],
+ "q039": [
+  "column.dim_customers.lifetime_orders",
+  "model.dim_customers"
+ ],
+ "q040": [
+  "column.dim_customers.first_order_date",
+  "column.dim_customers.signed_up_on",
+  "model.dim_customers"
+ ],
+ "q041": [
+  "column.rpt_customer_churn.has_ordered",
+  "column.rpt_customer_churn.is_churned",
+  "column.rpt_customer_churn.region_code",
+  "model.rpt_customer_churn"
+ ],
+ "q042": [
+  "column.rpt_customer_churn.is_churned_marketing",
+  "model.rpt_customer_churn"
+ ],
+ "q043": [
+  "column.dim_customers.customer_segment",
+  "model.dim_customers"
+ ],
+ "q044": [
+  "column.fct_orders.channel",
+  "column.fct_orders.customer_id",
+  "column.fct_orders.is_revenue_order",
+  "model.fct_orders"
+ ],
+ "q045": [
+  "column.dim_customers.acquisition_channel",
+  "column.dim_customers.lifetime_gross_nzd",
+  "column.dim_customers.lifetime_orders",
+  "model.dim_customers"
+ ],
+ "q046": [
+  "column.fct_payments.paid_date",
+  "column.fct_payments.payment_method",
+  "column.fct_payments.payment_status",
+  "model.fct_payments"
+ ],
+ "q047": [
+  "column.fct_payments.paid_date",
+  "column.fct_payments.payment_status",
+  "model.fct_payments"
+ ],
+ "q048": [
+  "column.fct_payments.amount_nzd",
+  "column.fct_payments.paid_date",
+  "column.fct_payments.payment_method",
+  "column.fct_payments.payment_status",
+  "model.fct_payments"
+ ],
+ "q049": [
+  "column.fct_refunds.refund_amount_nzd",
+  "column.fct_refunds.refund_date",
+  "column.fct_refunds.refund_reason",
+  "model.fct_refunds"
+ ],
+ "q050": [
+  "column.fct_refunds.refund_amount_nzd",
+  "column.fct_refunds.refund_date",
+  "model.fct_refunds"
+ ],
+ "q051": [
+  "column.fct_revenue_daily.gross_revenue_nzd",
+  "column.fct_revenue_daily.refunds_nzd",
+  "column.fct_revenue_daily.region_code",
+  "column.fct_revenue_daily.revenue_date",
+  "model.fct_revenue_daily"
+ ],
+ "q052": [
+  "column.fct_refunds.order_date",
+  "column.fct_refunds.refund_date",
+  "model.fct_refunds"
+ ],
+ "q053": [
+  "column.fct_orders.is_split_tender",
+  "model.fct_orders"
+ ],
+ "q054": [
+  "column.fct_orders.failed_payment_attempts",
+  "column.fct_orders.order_date",
+  "model.fct_orders"
+ ],
+ "q055": [
+  "column.dim_campaigns.campaign_channel",
+  "model.dim_campaigns"
+ ],
+ "q056": [
+  "column.dim_campaigns.budget_nzd",
+  "column.dim_campaigns.started_on",
+  "model.dim_campaigns"
+ ],
+ "q057": [
+  "column.dim_campaigns.campaign_id",
+  "column.dim_campaigns.campaign_name",
+  "column.dim_campaigns.ended_on",
+  "column.dim_campaigns.started_on",
+  "model.dim_campaigns"
+ ],
+ "q058": [
+  "column.rpt_campaign_performance.campaign_id",
+  "column.rpt_campaign_performance.campaign_name",
+  "column.rpt_campaign_performance.converted_customers",
+  "model.rpt_campaign_performance"
+ ],
+ "q059": [
+  "column.rpt_campaign_performance.attributed_customers",
+  "column.rpt_campaign_performance.campaign_channel",
+  "model.rpt_campaign_performance"
+ ],
+ "q060": [
+  "column.dim_campaigns.ended_on",
+  "column.dim_campaigns.started_on",
+  "model.dim_campaigns"
+ ],
+ "q061": [
+  "model.dim_stores"
+ ],
+ "q062": [
+  "column.dim_stores.opened_on",
+  "column.dim_stores.store_id",
+  "column.dim_stores.store_name",
+  "model.dim_stores"
+ ],
+ "q063": [
+  "column.dim_stores.current_staff",
+  "column.dim_stores.store_name",
+  "model.dim_stores"
+ ],
+ "q064": [
+  "column.dim_employees.is_current",
+  "column.dim_employees.job_title",
+  "model.dim_employees"
+ ],
+ "q065": [
+  "column.dim_employees.is_current",
+  "column.dim_employees.tenure_days",
+  "model.dim_employees"
+ ],
+ "q066": [
+  "column.dim_employees.hired_on",
+  "model.dim_employees"
+ ],
+ "q067": [
+  "column.dim_employees.annual_salary",
+  "column.dim_employees.is_current",
+  "column.dim_employees.region_code",
+  "column.dim_employees.salary_currency",
+  "model.dim_employees"
+ ],
+ "q068": [
+  "column.dim_employees.annual_salary",
+  "column.dim_employees.is_current",
+  "column.dim_employees.job_title",
+  "column.dim_employees.region_code",
+  "column.dim_employees.salary_currency",
+  "model.dim_employees"
+ ],
+ "q069": [
+  "column.dim_employees.is_current",
+  "model.dim_employees"
+ ],
+ "q070": [
+  "column.dim_stores.current_staff",
+  "column.dim_stores.store_id",
+  "column.dim_stores.store_name",
+  "column.fct_orders.is_revenue_order",
+  "column.fct_orders.net_revenue_nzd",
+  "column.fct_orders.order_date",
+  "column.fct_orders.store_id",
+  "model.dim_stores",
+  "model.fct_orders"
+ ],
+ "q071": [
+  "column.dim_customers.customer_id",
+  "column.dim_customers.customer_segment",
+  "column.fct_orders.customer_id",
+  "column.fct_orders.is_revenue_order",
+  "column.fct_orders.net_revenue_nzd",
+  "column.fct_orders.order_date",
+  "model.dim_customers",
+  "model.fct_orders"
+ ],
+ "q072": [
+  "column.fct_orders.customer_id",
+  "column.fct_orders.is_revenue_order",
+  "column.fct_orders.order_date",
+  "model.fct_orders"
+ ],
+ "q073": [
+  "column.fct_orders.is_revenue_order",
+  "column.fct_orders.items_cost_nzd",
+  "column.fct_orders.order_date",
+  "column.fct_orders.order_total_nzd",
+  "model.fct_orders"
+ ],
+ "q074": [
+  "column.dim_customers.customer_id",
+  "column.dim_customers.first_order_date",
+  "column.fct_orders.customer_id",
+  "column.fct_orders.is_revenue_order",
+  "column.fct_orders.order_date",
+  "model.dim_customers",
+  "model.fct_orders"
+ ],
+ "q075": [
+  "column.fct_order_items.category",
+  "column.fct_order_items.order_id",
+  "column.fct_refunds.order_id",
+  "column.fct_refunds.refund_amount_nzd",
+  "column.fct_refunds.refund_date",
+  "model.fct_order_items",
+  "model.fct_refunds"
+ ],
+ "q076": [
+  "column.fct_orders.is_revenue_order",
+  "column.fct_orders.order_date",
+  "model.fct_orders"
+ ],
+ "q077": [
+  "column.dim_customers.first_order_date",
+  "model.dim_customers"
+ ],
+ "q078": [
+  "column.fct_orders.discount_code",
+  "column.fct_orders.is_revenue_order",
+  "column.fct_orders.order_date",
+  "column.fct_orders.order_total_nzd",
+  "model.fct_orders"
+ ],
+ "q079": [
+  "column.fct_orders.channel",
+  "column.fct_orders.order_date",
+  "model.fct_orders"
+ ],
+ "q080": [
+  "column.fct_orders.order_date",
+  "model.fct_orders"
+ ],
+ "q081": [
+  "column.dim_customers.city",
+  "column.dim_customers.customer_id",
+  "column.dim_customers.first_name",
+  "column.dim_customers.signed_up_on",
+  "model.dim_customers"
+ ],
+ "q082": [
+  "column.dim_customers.customer_id",
+  "column.dim_customers.lifetime_orders",
+  "column.dim_customers.phone",
+  "model.dim_customers"
+ ],
+ "q091": [
+  "column.fct_orders.order_date",
+  "column.fct_orders.order_status",
+  "column.fct_orders.order_total_nzd",
+  "model.fct_orders"
+ ],
+ "q092": [
+  "column.dim_stores.store_id",
+  "column.dim_stores.store_name",
+  "column.fct_orders.order_date",
+  "column.fct_orders.store_id",
+  "model.dim_stores",
+  "model.fct_orders"
+ ],
+ "q093": [
+  "column.fct_orders.order_date",
+  "column.fct_orders.order_status",
+  "column.fct_orders.order_total_nzd",
+  "model.fct_orders"
+ ],
+ "q094": [
+  "column.dim_customers.customer_segment",
+  "model.dim_customers"
+ ],
+ "q095": [
+  "column.rpt_customer_churn.customer_segment",
+  "column.rpt_customer_churn.has_ordered",
+  "column.rpt_customer_churn.is_churned",
+  "model.rpt_customer_churn"
+ ],
+ "q096": [
+  "column.dim_customers.customer_id",
+  "column.dim_customers.customer_segment",
+  "column.fct_orders.customer_id",
+  "column.fct_orders.is_revenue_order",
+  "column.fct_orders.order_date",
+  "model.dim_customers",
+  "model.fct_orders"
+ ],
+ "q097": [
+  "column.dim_customers.customer_id",
+  "column.dim_customers.customer_segment",
+  "column.fct_orders.customer_id",
+  "column.fct_orders.is_revenue_order",
+  "column.fct_orders.order_date",
+  "column.fct_orders.order_total_nzd",
+  "model.dim_customers",
+  "model.fct_orders"
+ ],
+ "q098": [
+  "column.fct_ad_spend_daily.spend_date",
+  "column.fct_ad_spend_daily.spend_nzd",
+  "model.fct_ad_spend_daily"
+ ],
+ "q099": [
+  "column.fct_ad_spend_daily.campaign_channel",
+  "column.fct_ad_spend_daily.clicks",
+  "column.fct_ad_spend_daily.impressions",
+  "column.fct_ad_spend_daily.spend_date",
+  "model.fct_ad_spend_daily"
+ ],
+ "q100": [
+  "column.fct_ad_spend_daily.region_code",
+  "column.fct_ad_spend_daily.spend_date",
+  "column.fct_ad_spend_daily.spend_nzd",
+  "model.fct_ad_spend_daily"
+ ],
+ "q101": [
+  "column.rpt_campaign_performance.attributed_net_revenue_nzd",
+  "column.rpt_campaign_performance.campaign_channel",
+  "column.rpt_campaign_performance.total_spend_nzd",
+  "model.rpt_campaign_performance"
+ ],
+ "q102": [
+  "column.fct_revenue_daily.net_revenue_nzd",
+  "column.fct_revenue_daily.revenue_date",
+  "model.fct_revenue_daily"
+ ],
+ "q103": [
+  "column.fct_revenue_daily.net_revenue_nzd",
+  "column.fct_revenue_daily.revenue_date",
+  "model.fct_revenue_daily"
+ ],
+ "q104": [
+  "column.fct_revenue_daily.net_revenue_nzd",
+  "column.fct_revenue_daily.revenue_date",
+  "model.fct_revenue_daily"
+ ],
+ "q105": [
+  "column.fct_revenue_daily.channel",
+  "column.fct_revenue_daily.net_revenue_nzd",
+  "column.fct_revenue_daily.revenue_date",
+  "model.fct_revenue_daily"
+ ],
+ "q106": [
+  "column.fct_revenue_daily.net_revenue_nzd",
+  "column.fct_revenue_daily.orders",
+  "column.fct_revenue_daily.region_code",
+  "column.fct_revenue_daily.revenue_date",
+  "model.fct_revenue_daily"
+ ],
+ "q107": [
+  "column.rpt_customer_churn.has_ordered",
+  "column.rpt_customer_churn.is_churned",
+  "model.rpt_customer_churn"
+ ],
+ "q108": [
+  "column.rpt_customer_churn.has_ordered",
+  "column.rpt_customer_churn.is_churned",
+  "model.rpt_customer_churn"
+ ],
+ "q109": [
+  "column.rpt_customer_churn.customer_segment",
+  "column.rpt_customer_churn.has_ordered",
+  "column.rpt_customer_churn.is_churned",
+  "model.rpt_customer_churn"
+ ],
+ "q110": [
+  "column.rpt_revenue_by_region.gross_revenue_nzd",
+  "column.rpt_revenue_by_region.revenue_month",
+  "model.rpt_revenue_by_region"
+ ],
+ "q111": [
+  "column.rpt_revenue_by_region.gross_revenue_nzd",
+  "column.rpt_revenue_by_region.region_code",
+  "column.rpt_revenue_by_region.revenue_month",
+  "model.rpt_revenue_by_region"
+ ],
+ "q112": [
+  "column.fct_orders.is_revenue_order",
+  "column.fct_orders.order_date",
+  "column.fct_orders.region_code",
+  "model.fct_orders"
+ ],
+ "q113": [
+  "column.fct_orders.is_revenue_order",
+  "column.fct_orders.order_date",
+  "column.fct_orders.order_id",
+  "column.fct_orders.order_total_nzd",
+  "column.fct_payments.order_id",
+  "column.fct_payments.payment_method",
+  "column.fct_payments.payment_status",
+  "model.fct_orders",
+  "model.fct_payments"
+ ],
+ "q114": [
+  "column.fct_orders.is_revenue_order",
+  "column.fct_orders.order_date",
+  "column.fct_orders.order_id",
+  "column.fct_payments.amount_nzd",
+  "column.fct_payments.order_id",
+  "column.fct_payments.payment_method",
+  "column.fct_payments.payment_status",
+  "model.fct_orders",
+  "model.fct_payments"
+ ],
+ "q115": [
+  "column.fct_orders.is_revenue_order",
+  "column.fct_orders.order_date",
+  "column.fct_orders.order_id",
+  "column.fct_payments.order_id",
+  "column.fct_payments.payment_method",
+  "column.fct_payments.payment_status",
+  "model.fct_orders",
+  "model.fct_payments"
+ ],
+ "q116": [
+  "column.fct_revenue_daily.gross_revenue_nzd",
+  "column.fct_revenue_daily.revenue_date",
+  "model.fct_revenue_daily"
+ ],
+ "q117": [
+  "column.fct_order_items.category",
+  "column.fct_order_items.is_revenue_order",
+  "column.fct_order_items.line_amount_nzd",
+  "column.fct_order_items.order_date",
+  "model.fct_order_items"
+ ],
+ "q118": [
+  "column.fct_revenue_daily.gross_revenue_nzd",
+  "column.fct_revenue_daily.revenue_date",
+  "model.fct_revenue_daily"
+ ],
+ "q119": [
+  "column.rpt_active_customers.customer_segment",
+  "column.rpt_active_customers.is_active",
+  "model.rpt_active_customers"
+ ],
+ "q120": [
+  "column.rpt_active_customers.customer_segment",
+  "column.rpt_active_customers.is_active",
+  "model.rpt_active_customers"
+ ],
+ "q121": [
+  "column.rpt_active_customers.is_active",
+  "model.rpt_active_customers"
+ ],
+ "q122": [
+  "column.fct_revenue_daily.net_revenue_nzd",
+  "column.fct_revenue_daily.revenue_date",
+  "model.fct_revenue_daily"
+ ],
+ "q123": [
+  "column.fct_revenue_daily.net_revenue_nzd",
+  "column.fct_revenue_daily.revenue_date",
+  "model.fct_revenue_daily"
+ ],
+ "q124": [
+  "column.fct_orders.is_revenue_order",
+  "column.fct_orders.order_date",
+  "column.fct_orders.order_total_nzd",
+  "model.fct_orders"
+ ],
+ "q125": [
+  "column.dim_stores.store_id",
+  "column.dim_stores.store_name",
+  "column.fct_orders.is_revenue_order",
+  "column.fct_orders.order_date",
+  "column.fct_orders.order_total_nzd",
+  "column.fct_orders.store_id",
+  "model.dim_stores",
+  "model.fct_orders"
+ ],
+ "q126": [
+  "column.fct_refunds.refund_amount_nzd",
+  "column.fct_refunds.refund_date",
+  "model.fct_refunds"
+ ],
+ "q127": [
+  "column.fct_revenue_daily.net_revenue_nzd",
+  "column.fct_revenue_daily.region_code",
+  "column.fct_revenue_daily.revenue_date",
+  "model.fct_revenue_daily"
+ ],
+ "q128": [
+  "column.fct_orders.is_revenue_order",
+  "column.fct_orders.order_date",
+  "column.fct_orders.region_code",
+  "model.fct_orders"
+ ],
+ "q129": [
+  "column.fct_orders.customer_id",
+  "column.fct_orders.is_revenue_order",
+  "column.fct_orders.order_date",
+  "model.fct_orders"
+ ],
+ "q130": [
+  "column.fct_revenue_daily.net_revenue_nzd",
+  "column.fct_revenue_daily.revenue_date",
+  "model.fct_revenue_daily"
+ ]
+}

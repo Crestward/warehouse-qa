@@ -1,0 +1,8 @@
+# Where warehouse-qa finds the shared pieces built in warehouse-graph (paths relative to this file).
+# WAREHOUSE_GRAPH_DIR overrides `dir` (CI checks warehouse-graph out next to this repo).
+[warehouse_graph]
+dir = "../warehouse-graph"
+graph = "build/graph.wgz"
+policies = "policies.yml"
+# One cost ledger for every project, so the US$150 cap (PRD §5.3) is global.
+ledger = "costs.csv"
