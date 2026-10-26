@@ -2109,7 +2109,7 @@ wheels = [
 [[package]]
 name = "warehouse-graph"
 version = "0.1.0"
-source = { git = "https://github.com/Crestward/warehouse-graph?rev=90d1d880f8ab5d8a2769a3be8be6e169bbcb80c3#90d1d880f8ab5d8a2769a3be8be6e169bbcb80c3" }
+source = { git = "https://github.com/Crestward/warehouse-graph?rev=8231039fc5bf0acdebf01da93413a608acfbc889#8231039fc5bf0acdebf01da93413a608acfbc889" }
 dependencies = [
     { name = "anthropic" },
     { name = "jsonschema" },
@@ -2155,7 +2155,7 @@ requires-dist = [
     { name = "pyyaml", specifier = ">=6" },
     { name = "sqlglot", specifier = ">=27" },
     { name = "torch", specifier = ">=2.6", index = "https://download.pytorch.org/whl/cpu" },
-    { name = "warehouse-graph", git = "https://github.com/Crestward/warehouse-graph?rev=90d1d880f8ab5d8a2769a3be8be6e169bbcb80c3" },
+    { name = "warehouse-graph", git = "https://github.com/Crestward/warehouse-graph?rev=8231039fc5bf0acdebf01da93413a608acfbc889" },
 ]
 
 [package.metadata.requires-dev]

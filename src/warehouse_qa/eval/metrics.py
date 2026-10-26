@@ -21,7 +21,6 @@ K_VALUES = (5, 10, 20)
 ANSWER_MODES = ("answer", "answer_with_assumption")
 DECLINE_MODES = ("refuse", "abstain")
 REFUNDS_GAP_CAVEAT = "caveat.cav_refunds_before_2024_03"
-STALE_SOURCE = "source.marketing.ad_spend"
 
 
 class Score(BaseModel):
@@ -76,7 +75,7 @@ def trap_avoided(q: EvalQuestion, r: QuestionRecord, exec_correct: bool | None) 
         return False
     if any(n in r.retrieved_nodes and n not in r.labelled_nodes for n in q.trap_nodes):
         return False
-    if q.trap_type == "stale_source" and not any(STALE_SOURCE in w for w in r.warnings):
+    if q.trap_type == "stale_source" and not any(w.startswith("stale") for w in r.warnings):
         return False
     return not (q.trap_type == "data_gap" and REFUNDS_GAP_CAVEAT not in r.caveats)
 
