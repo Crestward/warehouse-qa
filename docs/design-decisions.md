@@ -55,3 +55,50 @@ The first retrieval eval scored **0% on stale-source traps for both retrievers**
 
 ## Q3. Retrieval is scored without an LLM
 Recall@k is computed against the derived gold nodes (Phase 4), and trap checks against labels and warnings, so the whole Phase 5 sweep and comparison cost $0 (PRD §5.2 levers 5–6). The Haiku fallback for query understanding exists and is unit-tested. It never triggered on dev (0/60), because every question matched graph nodes deterministically.
+
+## Q4. SQL generation and verification: results and what they mean (Phase 6)
+**Built** (`pipeline/`):
+- Generation with structured output (`{sql, tables_used, assumptions}`) from the packed context. The system prompt is stable and cached.
+- Static checks: one read-only query, `marts` tables only, function allow-list, LIMIT injection.
+- Dry run (EXPLAIN) and execution as the asker's own login role.
+- Exactly five sanity checks: empty result, join fan-out (probed with a COUNT vs COUNT DISTINCT of the grain key), null blow-up, deprecated usage, staleness.
+- Up to 2 repair rounds. Each round is one Batch API call, and the model gets the errors, check results and **result stats only, never rows**.
+- An answer composer (result, SQL, tables, caveats of the tables used, freshness warnings) and an audit event per answer.
+
+**Iteration on dev (allowed for the main system only; logged):** the first pass scored 81.6% execution accuracy, with 8.2% over-refusal. Reading every failure gave three general fixes:
+1. **The model was acting as the gatekeeper.** It refused finance's salary question because a caveat said "restricted", and refused a masked column. The prompt now says what D13 means: access is enforced by the database for this user, and labels are never a reason to refuse. Over-refusal fell from 8.2% to 2.0%.
+2. **Fan-out false positive.** A deliberate `CROSS JOIN` ("count each refund once per category") was flagged three times and ended in an abstain. Cartesian joins without a join condition are now exempt. The gold-SQL oracle test proves that no gold query triggers a repair.
+3. **Comparison:** an all-zero group ("Prospect: 0 churned") may be present or absent (docs/eval.md change log). All runs were re-scored offline for free.
+
+**Final dev results** (n = 60; 49 answerable; 16 traps; Sonnet 5.5, low effort, Batch API):
+
+| | Config 1, schema dump | Config 6, no verification | **Config 4, main** | Oracle retrieval |
+|---|---|---|---|---|
+| Execution accuracy | 95.9% | 91.8% | **91.8%** [83.7, 98.0] | 95.9% |
+| Trap avoidance | 14/16 | 12/16 | **14/16** | 16/16 |
+| Over-refusal | 2.0% | 2.0% | 2.0% | 0% |
+| Leakage | 0 | 0 | 0 | 0 |
+| Context given to the model | ~2,560 tokens (whole schema) | 1,423 | 1,423 | 211 |
+| Cost per question (nominal) | $0.0031 | $0.0038 | $0.0041 | $0.0019 |
+
+**Verification (config 4 vs 6, the Phase 6 gate):**
+- Same accuracy (45/49 each, no discordant pairs).
+- **Trap failures halve, 4 → 2.** It wins exactly the two stale-data questions (q098, q099) through the staleness check, with 0 losses. Exact McNemar p = 0.5: on 16 trap questions a 2–0 split can't be significant. That's reported as is.
+- It also turned q086 (an AU analyst asking for NZ revenue) from a row-filtered NULL presented as an answer into an abstain ("you likely can't see NZ rows").
+- It fixed two genuine fan-outs by repair (q012, q075).
+- It costs 3 extra calls in 60 questions.
+
+**Main system vs baseline 1:**
+- **Not more accurate on this warehouse:** 91.8% vs 95.9%, McNemar p = 0.63 (1 win, 3 losses).
+- **Where the losses come from:** one is a pure retrieval miss (q115: the payments table never reached the context). Two are model choices: gross instead of net revenue on q106, and a slightly different filter on q045.
+- **Retrieval is the gap:** oracle retrieval brings config 4 back to 95.9%.
+- **What config 4 does offer:**
+  - 44% less context
+  - caveats and freshness in every answer
+  - the stale warnings (trap wins the baseline can't get)
+  - an honest abstain on q086, where the baseline returned the NULL
+  - the caveat-dependent q067 (salary bill in NZD), which the baseline refused
+
+**What it means:** on a 20-table warehouse, "put the whole schema in the prompt" is a strong, cheap baseline, and this project shows that rather than hiding it. The graph's value is everything around the SQL (governance-aware context, warnings, verification, refusals), and context size, which matters as warehouses grow past what fits in a prompt. The stretch cascade (S1) and Phase 7's Gate A/B work on the mode and refusal side, where the main system's edge is.
+
+**Cost:** the whole of Phase 6's iteration (two passes of configs 4, 6 and oracle on dev) billed US$0.75. Config 6's first round is byte-identical to config 4's round 0, so the response cache served it for $0. Project total so far: US$0.99.

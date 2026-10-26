@@ -54,13 +54,13 @@ Dev results may expose labelling errors. Fixing them is allowed **until a test-s
 | 2026-10-26 | q127 | halves → quarters, as dates | gold returned a made-up text label ('H1'); systems write such labels differently |
 | 2026-10-26 | q129 | gold is the 90 days ending 2026-09-30, from fct_orders | the churn flag's window is 91 days (days_since_last_order <= 90); "last 90 days" means 90 |
 
-Found by reading every failure of the first baseline-1 dev run, before any test result. The comparison also learned to match period labels (§4).
+Found by reading every failure of the first baseline-1 dev run, before any test result. The comparison also learned to match period labels (§4), and (Phase 6, from reading config 4's dev failures) to accept a group whose measures are all zero being present or absent.
 
 ## 4. Comparing results (execution accuracy)
 - Rows are a **multiset**: order is ignored and duplicates count.
 - Column names and order are ignored. Every gold column must match a distinct predicted column, so **extra predicted columns are allowed**, and the rows must match under that mapping.
 - Numbers match within **abs 0.005 or rel 5e-4**, so a predicted value rounded to 2 decimals matches. A fraction may come back as a **percentage** (×100).
-- Dates and timestamps compare as ISO dates. A period's start date also matches its month, quarter or year label ('2025-10', 'Q4 2025', '2025'). Booleans only equal booleans, and NULL equals NULL.
+- Dates and timestamps compare as ISO dates. A period's start date also matches its month, quarter or year label ('2025-10', 'Q4 2025', '2025'). A group whose numeric measures are all zero may be present or absent ('Prospect: 0 churned'). Booleans only equal booleans, and NULL equals NULL.
 - A truncated result (more than 1,000 rows) or an execution error is never correct.
 - Implementation: `warehouse_qa.eval.compare`, unit-tested.
 
