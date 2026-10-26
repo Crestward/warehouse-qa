@@ -1,0 +1,9 @@
+# Hybrid retriever params, chosen by `eval sweep` on dev (docs/retrieval-tuning.md).
+tuned_on: dev
+params:
+  k_seed: 10
+  hops: 0
+  w_seed: 0.5
+  w_hop: 0.1
+  w_parent: 0.0
+  warn_models: 1

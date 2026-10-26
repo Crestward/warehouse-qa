@@ -1,0 +1,168 @@
+{
+  "run_id": "20261026T180010Z-retrieval-vector-dev",
+  "retriever": "vector",
+  "split": "dev",
+  "config": {
+    "k": 40
+  },
+  "context_budget": 3000,
+  "schema_dump_tokens_mean": 2562.4,
+  "metrics": {
+    "n": 60,
+    "recall": {
+      "5": {
+        "n": 49,
+        "rate": 0.2237,
+        "ci95": [
+          0.1519,
+          0.2985
+        ]
+      },
+      "10": {
+        "n": 49,
+        "rate": 0.3429,
+        "ci95": [
+          0.2542,
+          0.432
+        ]
+      },
+      "20": {
+        "n": 49,
+        "rate": 0.5335,
+        "ci95": [
+          0.4345,
+          0.6324
+        ]
+      }
+    },
+    "precision": {
+      "5": {
+        "n": 49,
+        "rate": 0.1592,
+        "ci95": [
+          0.1102,
+          0.2122
+        ]
+      },
+      "10": {
+        "n": 49,
+        "rate": 0.1306,
+        "ci95": [
+          0.0959,
+          0.1673
+        ]
+      },
+      "20": {
+        "n": 49,
+        "rate": 0.1041,
+        "ci95": [
+          0.0827,
+          0.1265
+        ]
+      }
+    },
+    "trap_ok": {
+      "n": 16,
+      "rate": 0.875,
+      "ci95": [
+        0.6875,
+        1.0
+      ]
+    },
+    "trap_ok_by_type": {
+      "ambiguous_dimension": {
+        "n": 1,
+        "rate": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "competing_metric": {
+        "n": 3,
+        "rate": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "currency": {
+        "n": 2,
+        "rate": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "deprecated_column": {
+        "n": 2,
+        "rate": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "deprecated_model": {
+        "n": 1,
+        "rate": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "fanout_join": {
+        "n": 1,
+        "rate": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "misleading_name": {
+        "n": 3,
+        "rate": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "moving_now": {
+        "n": 1,
+        "rate": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "stale_source": {
+        "n": 2,
+        "rate": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      }
+    },
+    "false_stale_warning": {
+      "n": 56,
+      "rate": 0.0,
+      "ci95": [
+        0.0,
+        0.0
+      ]
+    },
+    "missed_stale_warning": {
+      "n": 4,
+      "rate": 1.0,
+      "ci95": [
+        1.0,
+        1.0
+      ]
+    },
+    "context_tokens_mean": 2011.2,
+    "tool_calls_mean": 19.7,
+    "latency_p50_s": 0.024,
+    "fallback_needed": 0,
+    "visibility_violations": 0
+  }
+}
