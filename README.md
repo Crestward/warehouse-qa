@@ -13,4 +13,4 @@ make check
 ```
 
 ## Licence
-MIT
+MIT. See [LICENSE](LICENSE).
