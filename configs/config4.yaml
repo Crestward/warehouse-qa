@@ -1,0 +1,13 @@
+# Config 4 (PRD §3.7): the main system. Hybrid retrieval -> SQL generation -> static checks ->
+# dry run -> execute -> 5 sanity checks -> up to 2 repair rounds. Iterated on dev only.
+name: config4
+system: pipeline
+retriever: hybrid
+verification: true
+max_repairs: 2
+model: claude-sonnet-5-5
+effort: low
+max_tokens: 1500
+batch: true
+context_budget: 3000
+audit: true

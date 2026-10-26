@@ -1,0 +1,15 @@
+audit: false
+batch: true
+context_budget: 3000
+effort: low
+graph_manifest: 9225a0ced24daf196767492541cb23dd4950c213a3c755a31150c0d48c5d5af2
+max_repairs: 2
+max_tokens: 1500
+model: claude-sonnet-5-5
+name: config6
+retriever: hybrid
+row_limit: 1000
+split: dev
+system: pipeline
+timeout_s: 30
+verification: false

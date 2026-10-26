@@ -53,8 +53,14 @@ class RunConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     name: str
-    system: Literal["schema_dump"]
+    system: Literal["schema_dump", "pipeline"]
     model: str
+    # pipeline only (configs 4, 6 and oracle; PRD §3.7)
+    retriever: Literal["hybrid", "oracle"] = "hybrid"
+    verification: bool = True
+    max_repairs: int = 2
+    context_budget: int = 3000
+    audit: bool = False
     effort: Literal["low", "medium", "high"] | None = "low"
     max_tokens: int = 1024
     batch: bool = True
@@ -218,6 +224,13 @@ def run(
     )
 
     gold = gold_results(ctx.adapter, questions, config.row_limit)
+    if config.system == "pipeline":
+        done, spent = _run_pipeline(config, questions, graph, env, ctx, provider, cache_dir, run_id)
+        for r in done:
+            r.gold_rows, r.gold_error = gold.get(r.id, (None, None))
+        write_text_lf(out / "questions.jsonl", "".join(r.model_dump_json() + "\n" for r in done))
+        rescore(out, run_meta={"spent_usd": spent})
+        return out
     system = SchemaDumpSystem(
         graph, spec, model=config.model, max_tokens=config.max_tokens, effort=config.effort
     )
@@ -271,6 +284,59 @@ def run(
     return out
 
 
+def _run_pipeline(
+    config: RunConfig,
+    questions: list[EvalQuestion],
+    graph: GraphArtifact,
+    env: Env,
+    ctx: Context,
+    provider: LLMProvider | None,
+    cache_dir: Path | None,
+    run_id: str,
+) -> tuple[list[QuestionRecord], float]:
+    import asyncio
+
+    from warehouse_graph.graph.embed import get_embedder
+
+    from warehouse_qa.eval.retrieval import load_hybrid_params
+    from warehouse_qa.pipeline.runner import Pipeline, PipelineConfig
+    from warehouse_qa.retrieval.rerank import CrossEncoderReranker
+
+    client = LLMClient(
+        provider or AnthropicProvider(), ledger_path=env.ledger, cache_dir=cache_dir, run_id=run_id
+    )
+    spent_before = client.spent_usd
+    pipeline = Pipeline(
+        PipelineConfig(
+            model=config.model,
+            effort=config.effort,
+            max_tokens=config.max_tokens,
+            batch=config.batch,
+            retriever=config.retriever,
+            verification=config.verification,
+            max_repairs=config.max_repairs,
+            row_limit=config.row_limit,
+            timeout_s=config.timeout_s,
+            context_budget=config.context_budget,
+            audit=config.audit,
+        ),
+        graph,
+        load_policies(env.policies),
+        ctx.adapter,
+        client,
+        reranker=CrossEncoderReranker(),
+        embedder=get_embedder(graph.meta.embedding_model),
+        hybrid_params=load_hybrid_params(),
+        gold_nodes=load_gold_nodes(),
+    )
+    records = asyncio.run(pipeline.run(questions))
+    for r in records:
+        r.leaks = ctx.scanner.scan(
+            r.role, r.prompt, r.answer_text, r.columns, r.rows, llm_context=pipeline.contexts[r.id]
+        )
+    return records, round(client.spent_usd - spent_before, 6)
+
+
 def rescore(run_dir: Path, run_meta: dict[str, Any] | None = None) -> dict[str, Any]:
     """Recompute scores, summary and report from questions.jsonl only."""
     questions = {q.id: q for q in load_questions()}
@@ -302,3 +368,32 @@ def rescore(run_dir: Path, run_meta: dict[str, Any] | None = None) -> dict[str, 
     write_text_lf(run_dir / "scores.jsonl", "".join(s.model_dump_json() + "\n" for s in scores))
     write_text_lf(run_dir / "report.md", render_report(summary, records, scores, questions))
     return summary
+
+
+def compare(run_a: Path, run_b: Path) -> dict[str, Any]:
+    """Paired comparison of two runs on the same questions: exact McNemar per binary metric."""
+    from warehouse_qa.eval.stats import mcnemar
+
+    def load(run: Path) -> dict[str, dict[str, Any]]:
+        lines = (run / "scores.jsonl").read_text(encoding="utf-8").splitlines()
+        return {s["id"]: s for s in (json.loads(x) for x in lines if x.strip())}
+
+    a, b = load(run_a), load(run_b)
+    out: dict[str, Any] = {"a": run_a.name, "b": run_b.name}
+    for metric in ("exec_correct", "trap_avoided", "mode_correct_lenient", "leaked"):
+        ids = sorted(
+            i for i in a if i in b and a[i][metric] is not None and b[i][metric] is not None
+        )
+        xa, xb = [bool(a[i][metric]) for i in ids], [bool(b[i][metric]) for i in ids]
+        only_a, only_b, p = mcnemar(xa, xb)
+        out[metric] = {
+            "n": len(ids),
+            "a": sum(xa),
+            "b": sum(xb),
+            "only_a": only_a,
+            "only_b": only_b,
+            "p_value": round(p, 4),
+            "only_a_ids": [i for i, x, y in zip(ids, xa, xb, strict=True) if x and not y],
+            "only_b_ids": [i for i, x, y in zip(ids, xa, xb, strict=True) if y and not x],
+        }
+    return out
