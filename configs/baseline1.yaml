@@ -1,0 +1,10 @@
+# Config 1 (PRD §3.7): the whole role-visible schema in context; no retrieval, no verification.
+# Run once on dev, once on test (PRD §5.2 lever 7). Phase 6 adds configs 4 and 6.
+name: baseline1
+system: schema_dump
+model: claude-sonnet-5-5   # PRD §5.1: the default SQL-generation model
+effort: low                # PRD §5.1: low effort for SQL generation
+max_tokens: 1024
+batch: true                # Batch API, 50% off (PRD §5.2 lever 11)
+row_limit: 1000
+timeout_s: 30

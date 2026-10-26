@@ -6,17 +6,35 @@ readme = "README.md"
 license = "MIT"
 requires-python = ">=3.12"
 dependencies = [
+    "numpy>=2.1",
+    "pydantic>=2.9",
+    "pyyaml>=6",
+    "sqlglot>=27",
+    "torch>=2.6",
     "warehouse-graph",
 ]
 
+[project.scripts]
+warehouse-qa = "warehouse_qa.cli:main"
+
 [tool.uv.sources]
-warehouse-graph = { git = "https://github.com/Crestward/warehouse-graph", tag = "v0.1.1" }
+# Pinned to the Phase 3 commit until PRs #2/#3 merge and v0.2.0 is tagged (todo.md).
+warehouse-graph = { git = "https://github.com/Crestward/warehouse-graph", rev = "90d1d880f8ab5d8a2769a3be8be6e169bbcb80c3" }
+torch = [{ index = "pytorch-cpu" }]
+
+# CPU-only torch (via warehouse-graph's embedding model): the default Linux wheels pull in CUDA.
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
 
 [dependency-groups]
 dev = [
+    "jsonschema>=4.26.0",
     "mypy>=1.13",
     "pytest>=8.3",
     "ruff>=0.8",
+    "types-pyyaml>=6.0.12.20260906",
 ]
 
 [build-system]
@@ -40,3 +58,7 @@ files = ["src", "tests"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+    "integration: needs the demo warehouse with policies applied (warehouse-graph: make policies)",
+]
+filterwarnings = ["ignore:sqlglotrs is deprecated:DeprecationWarning"]
