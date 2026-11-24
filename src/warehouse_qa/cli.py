@@ -375,6 +375,8 @@ def main(argv: list[str] | None = None) -> int:
     ru.add_argument("--gates", choices=["off", "observe", "enforce"], help="override the config")
     rl = ev.add_parser("results", help="tables and plot in docs/results.md, from saved runs")
     rl.add_argument("--split", default="test", choices=["dev", "test"])
+    lr = ev.add_parser("label-review", help="sensitivity of the results to questionable labels")
+    lr.add_argument("--split", default="test", choices=["test"])
     gt = ev.add_parser("gate", help="PR gate: a ci-split run against the committed baseline")
     gt.add_argument("run_dir", type=Path)
     gt.add_argument("--write-baseline", action="store_true", help="from a full dev run")
@@ -411,6 +413,15 @@ def main(argv: list[str] | None = None) -> int:
 
         write_results(args.split)
         print("wrote docs/results.md and docs/img/risk_coverage.svg")
+        return 0
+    if args.command == "label-review":
+        from warehouse_graph.adapters import PostgresAdapter
+
+        from warehouse_qa.eval.label_review import write as write_review
+
+        _graph_env()
+        write_review(PostgresAdapter(), args.split)
+        print("wrote docs/label-review.md")
         return 0
     if args.command == "gate":
         return gate(args.run_dir, args.write_baseline)

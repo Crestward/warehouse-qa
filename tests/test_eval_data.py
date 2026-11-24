@@ -103,6 +103,29 @@ def _env_or_skip() -> Env:
 
 
 @pytest.mark.integration
+def test_label_review_alternatives_run_and_differ_from_gold() -> None:
+    from warehouse_graph.adapters import PostgresAdapter
+    from warehouse_graph.governance import Principal
+
+    from warehouse_qa.eval.compare import results_match
+    from warehouse_qa.eval.label_review import alternative_rows, load_review
+
+    if not Env.load().graph.exists():
+        pytest.skip("no warehouse-graph build/graph.wgz")
+    adapter = PostgresAdapter()
+    rows = alternative_rows(adapter, load_review())
+    for qid, alt in rows.items():
+        q = QUESTIONS[qid]
+        assert q.gold_sql is not None
+        session = adapter.session_as(Principal(q.role, ""))
+        try:
+            gold = adapter.execute(session, q.gold_sql, 1000, 60).rows
+        finally:
+            session.close()
+        assert not results_match(gold, alt), f"{qid}: the alternative is the same answer"
+
+
+@pytest.mark.integration
 def test_every_gold_query_returns_rows_as_its_role() -> None:
     from warehouse_graph.adapters import PostgresAdapter
     from warehouse_graph.graph import GraphArtifact

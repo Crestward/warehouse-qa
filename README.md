@@ -23,7 +23,7 @@ One of two linked projects built on [`warehouse-graph`](https://github.com/Crest
 **Security:** 0 leaks in 50 red-team attacks, 0 of 10 prompt injections obeyed, and 0 leaks in 1,100 attempts with a model *scripted to obey the attacker*. With two controls switched off, the same attacks do leak, so the test can see. ([`docs/threat-model.md`](docs/threat-model.md))
 
 **The honest headline:**
-- **The naive baseline wins on accuracy here** (94.5% vs 86.3%, p = 0.03). With only 20 tables, the whole schema fits in the prompt, and retrieval sometimes drops a table the model needed: 5 of the 10 wrong answers.
+- **The naive baseline wins on accuracy here** (94.5% vs 86.3%, p = 0.03; 95.9% vs 89.0%, p = 0.125 if other valid readings of four ambiguous questions count, see [label review](docs/label-review.md)). With only 20 tables, the whole schema fits in the prompt, and retrieval sometimes drops a table the model needed: 5 of the 10 wrong answers.
 - **Graph-aware retrieval beats vector search** (8 wins, 2 losses), and verification adds stale-data warnings and trap catches. Neither is statistically significant at this size.
 - **What holds up is the governance:** no leak in any configuration, refusals that confirm nothing, and no group of fewer than 5 people ever shown.
 - **If I were shipping this for a warehouse this small,** I'd keep the governance, checks and gates, and feed the model the role-filtered schema directly.
@@ -81,6 +81,7 @@ flowchart TD
 |---|---|
 | [Results](docs/results.md) | test tables, plot, every failure explained |
 | [Design decisions](docs/design-decisions.md) | Q1–Q7, negative results included |
+| [Label review](docs/label-review.md) | which labels are questionable, and how much they matter |
 | [Evaluation protocol](docs/eval.md) | labelling, metrics, splits, what was frozen |
 | [Threat model](docs/threat-model.md) | controls, red team, residual risks |
 | [Gates](docs/gates.md), [retrieval tuning](docs/retrieval-tuning.md), [contamination](docs/contamination.md) | generated reports |

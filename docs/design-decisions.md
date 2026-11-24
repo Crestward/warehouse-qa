@@ -155,6 +155,8 @@ Recall@k is computed against the derived gold nodes (Phase 4), and trap checks a
 
 **Decision: ship it as measured.** The alternatives were to fix retrieval and re-run (that would make test a second dev set) or to lead with a friendlier metric (the "wrong, of those answered" row favours the system, but at lower coverage). Neither is honest. The README leads with the negative result and what it implies: on a small warehouse, keep the governance and drop the retrieval.
 
+**The late spot-check** ([`label-review.md`](label-review.md)). The planned 15-question check was skipped before the run and done after it. 3 of the 10 questions with SQL have more than one right answer, and a scan by wording found two more. Labels stay frozen, and a sensitivity analysis is reported next to the headline: same order, but the baseline's lead goes from p = 0.031 to p = 0.125. Rejected: editing the labels and replacing the headline (they'd be edited knowing the results), or leaving the analysis out (the p-value would look firmer than it is). The lesson: the check belonged before the run.
+
 **What would come next, on new questions:** the role-filtered schema as the context for small warehouses (the same pipeline, config 1's context), and better column docs for the tables retrieval misses. Parked, not started (PRD §1.4).
 
 **Demo without a key.** The page and CLI replay recorded replies for ten example questions through the response cache (`demo/recorded`), so a reviewer needs no account and pays nothing. Everything except the model call is live. None of the ten is an eval question.

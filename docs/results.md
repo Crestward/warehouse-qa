@@ -3,7 +3,7 @@
 Run **once** per config on 2026-11-24, from commit `34ece19`, after the comparisons were written down ([`eval.md`](eval.md) §10). 90 questions, Sonnet 5.5, low effort, Batch API. Nothing was changed after seeing these numbers.
 
 ## What they say
-1. **On this 20-table warehouse, putting the whole schema in the prompt is more accurate than the main system: 94.5% vs 86.3%** (69 vs 63 of 73; 6 losses, 0 wins; p = 0.031). Dev had them level (95.9% vs 93.9%), so part of config 4's dev score was tuning optimism. This is the headline result, and it's negative.
+1. **On this 20-table warehouse, putting the whole schema in the prompt is more accurate than the main system: 94.5% vs 86.3%** (69 vs 63 of 73; 6 losses, 0 wins; p = 0.031). **That p-value is fragile:** accepting other valid readings of four ambiguous questions, it is 95.9% vs 89.0% (6 losses, 1 win; p = 0.125), in the same order ([`label-review.md`](label-review.md)). Dev had them level (95.9% vs 93.9%), so part of config 4's dev score was tuning optimism. This is the headline result, and it's negative.
 2. **The gap is retrieval.** 5 of the 6 lost questions are ones where a needed *table* never reached the model ([below](#error-analysis-the-10-wrong-answers-of-config-4)). Once the SQL is written, the main system is no worse: of the questions it answers, 10.0% are wrong, against 12.7% for the schema dump (at 78% and 88% coverage, so not a like-for-like win).
 3. **Graph-aware retrieval beats vector search end to end:** 86.3% vs 78.1% (8 wins, 2 losses, p = 0.11), and 19 vs 14 of 24 traps (5 wins, 0 losses, p = 0.06). Same direction as the retrieval-only result (recall@20 0.767 vs 0.534), not significant on its own at n = 73.
 4. **Verification helps on traps, not on overall accuracy:** 19 vs 16 traps (3 wins, 0 losses, p = 0.25), 63 vs 62 questions.
@@ -104,7 +104,7 @@ All ten questions where config 4 answered wrongly or declined an answerable ques
 | q073 | gross margin from order lines; the gold query includes shipping | competing definition | ✗ | ✗ |
 
 - **Retrieval misses, 5 of 10.** The same pattern as q115 on dev: the question's words ("gift card", "payment method", "left the company") appear in no retrieved column's text, so the table never ranks. Column docs are thin there (`payment_method` has no description).
-- **Arguable labels, 3 of 10.** For q021 and q026, grouping by id is the better query, since names aren't unique. The labels were frozen before the run, so they count as wrong for every config, and the scores above include them.
+- **Arguable labels, 3 of 10.** For q021 and q026, grouping by id is the better query, since names aren't unique. The labels were frozen before the run, so they count as wrong for every config, and the scores above include them. [`label-review.md`](label-review.md) has the scores with the alternatives accepted.
 - **Two errors no check can see** (q073, q116): clean, verified SQL for a slightly different question.
 
 **Mode errors outside these ten:**
@@ -116,7 +116,7 @@ All ten questions where config 4 answered wrongly or declined an answerable ques
 ## Limits of this evaluation
 - **One synthetic warehouse of 20 tables**, seeded and small enough that the naive baseline fits in context. Nothing here says what happens at 500 tables.
 - **n = 90:** the CIs are wide. Eight planned tests were run without correction; only one has p < 0.05, and it's against the main system.
-- **Not blind:** one author wrote the questions, labels, rules and system; the clarify/abstain wording was visible while Gate A was written. No independent person has checked the gold SQL.
+- **Not blind:** one author wrote the questions, labels, rules and system; the clarify/abstain wording was visible while Gate A was written. A review of 15 random questions, done after the run by the same AI assistant that drafted them, found 3 with more than one right answer ([`label-review.md`](label-review.md)). No independent person has checked the gold SQL.
 - **Configs 1 and oracle run without gates** (the schema dump has no way to ask a question back), so strict mode accuracy isn't comparable for them. Use lenient.
 - **Input tokens** count everything billed as input (system prompt, context, repairs). The schema dump's prefix is prompt-cached, which is why it's cheaper per question despite more tokens. Earlier docs quote estimated *context* sizes (1,456 vs 2,562), which leave out the prompt.
 

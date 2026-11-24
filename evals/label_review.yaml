@@ -1,0 +1,41 @@
+# Label review, done AFTER the test run (2026-11-24): see docs/label-review.md.
+# The frozen labels in questions.yaml are unchanged and the headline uses them. Each entry is a
+# question whose wording allows another right answer, found by reviewing a random 15 and then
+# scanning every question for the same defects by wording, not by which system got it right.
+alternatives:
+  - id: q021
+    defect: products identified by name
+    why: 120 products share 91 names, so grouping by name merges different products; the question says products
+    sql: >-
+      select product_id, product_name, sum(quantity) as units from marts.fct_order_items
+      where is_revenue_order and order_date >= date '2026-01-01'
+      group by product_id, product_name order by units desc limit 3
+  - id: q026
+    defect: products identified by name
+    why: as q021
+    sql: >-
+      select product_id, product_name, sum(line_margin_nzd) as margin_nzd,
+      sum(line_margin_nzd) / sum(line_amount_nzd) as margin_share from marts.fct_order_items
+      where is_revenue_order group by product_id, product_name order by margin_nzd desc limit 10
+  - id: q027
+    defect: unstated revenue-order filter
+    why: the question says order lines in 2025, not lines of completed or returned orders
+    sql: >-
+      select i.category, sum(i.discount_amount * o.fx_rate_to_nzd) as discount_nzd
+      from marts.fct_order_items i join marts.fct_orders o on o.order_id = i.order_id
+      where i.order_date >= date '2025-01-01' and i.order_date < date '2026-01-01'
+      group by i.category
+  - id: q044
+    defect: unstated revenue-order filter
+    why: the question says customers with at least one order, of any status
+    sql: >-
+      select avg(case when n_channels = 2 then 1.0 else 0 end) as share_both from (
+      select customer_id, count(distinct channel) as n_channels from marts.fct_orders
+      group by customer_id) c
+  - id: q106
+    defect: two canonical metrics fit
+    why: revenue per order is also the canonical average_order_value metric (gross, per revenue order)
+    sql: >-
+      select region_code, avg(order_total_nzd) as average_order_value_nzd from marts.fct_orders
+      where is_revenue_order and order_date >= date '2026-01-01' and order_date < date '2026-04-01'
+      group by region_code
