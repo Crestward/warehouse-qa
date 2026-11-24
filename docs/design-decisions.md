@@ -144,7 +144,7 @@ Recall@k is computed against the derived gold nodes (Phase 4), and trap checks a
 - w = 0.5, not swept: two errors can't rank weights.
 - The threshold is set 0.1 below the highest one that costs nothing on dev.
 - Ties keep the PRD's stated rule instead of dropping it.
-- Dev has only 4 clarify and 4 abstain questions, so each rule's worth is a point estimate with almost no power. The same author wrote the rules and the test questions; the rules follow PRD §3.6, but that's a stated limitation.
+- Dev has only 4 clarify and 4 abstain questions, so each rule's worth is a point estimate with almost no power. The same author wrote the rules and the questions, and the wording of all 20 clarify/abstain questions and of the red-team prompts (12 of the 20 are in test) was on screen while Gate A was written. The rules follow PRD §3.6 and were judged on dev only, but **Gate A's test numbers are not blind**, and the results write-up (Phase 8) has to say so.
 
 **Prompt changes** (so dev configs 4 and 6 were re-run; baseline 1 and the Phase 6 oracle were not): the typed decline, "identity is fixed", and documentation fully delimited.
 
