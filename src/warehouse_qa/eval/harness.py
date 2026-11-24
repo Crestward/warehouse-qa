@@ -39,9 +39,11 @@ from warehouse_qa.eval.labels import SqlNodeResolver, load_gold_nodes
 from warehouse_qa.eval.leakage import LeakScanner
 from warehouse_qa.eval.metrics import score, summarize
 from warehouse_qa.eval.records import ROW_CAP, QuestionRecord, Usage
+from warehouse_qa.eval.reliability import reliability
 from warehouse_qa.eval.report import render_report
 from warehouse_qa.eval.schema import EvalQuestion, load_questions, write_text_lf
 from warehouse_qa.eval.splits import load_split, verify_manifest
+from warehouse_qa.pipeline.runner import Ask
 from warehouse_qa.sqlcheck import check_select
 from warehouse_qa.systems.schema_dump import SchemaDumpSystem, parse_reply
 
@@ -61,6 +63,7 @@ class RunConfig(BaseModel):
     max_repairs: int = 2
     context_budget: int = 3000
     audit: bool = False
+    gates: Literal["off", "observe", "enforce"] = "off"  # Gate A/B (configs/gates.yaml)
     effort: Literal["low", "medium", "high"] | None = "low"
     max_tokens: int = 1024
     batch: bool = True
@@ -79,6 +82,18 @@ class Context:
     adapter: PostgresAdapter
     resolver: SqlNodeResolver
     scanner: LeakScanner
+
+
+def open_context(env: Env, graph: GraphArtifact) -> Context:
+    spec = resolve(load_policies(env.policies), graph)
+    with psycopg.connect(conninfo_from_env()) as owner:
+        return Context(
+            env=env,
+            graph=graph,
+            adapter=PostgresAdapter(graph),
+            resolver=SqlNodeResolver(graph),
+            scanner=LeakScanner.from_database(owner, spec, graph),
+        )
 
 
 def preflight(env: Env, graph: GraphArtifact) -> list[str]:
@@ -203,17 +218,11 @@ def run(
     spec = resolve(load_policies(env.policies), graph)
     ids = set(load_split(split))
     questions = [q for q in load_questions() if q.id in ids]
-    with psycopg.connect(conninfo_from_env()) as owner:
-        ctx = Context(
-            env=env,
-            graph=graph,
-            adapter=PostgresAdapter(graph),
-            resolver=SqlNodeResolver(graph),
-            scanner=LeakScanner.from_database(owner, spec, graph),
-        )
+    ctx = open_context(env, graph)
 
     started = dt.datetime.now(dt.UTC)
-    run_id = f"{started:%Y%m%dT%H%M%SZ}-{config.name}-{split}"
+    observed = "-observe" if config.gates == "observe" else ""
+    run_id = f"{started:%Y%m%dT%H%M%SZ}-{config.name}{observed}-{split}"
     out = results_dir / run_id
     out.mkdir(parents=True)
     (out / "config.yaml").write_text(
@@ -225,7 +234,16 @@ def run(
 
     gold = gold_results(ctx.adapter, questions, config.row_limit)
     if config.system == "pipeline":
-        done, spent = _run_pipeline(config, questions, graph, env, ctx, provider, cache_dir, run_id)
+        done, spent = run_pipeline(
+            config,
+            [Ask(q.id, q.role, q.question, q.gold_nodes) for q in questions],
+            graph,
+            env,
+            ctx,
+            provider,
+            cache_dir,
+            run_id,
+        )
         for r in done:
             r.gold_rows, r.gold_error = gold.get(r.id, (None, None))
         write_text_lf(out / "questions.jsonl", "".join(r.model_dump_json() + "\n" for r in done))
@@ -284,9 +302,9 @@ def run(
     return out
 
 
-def _run_pipeline(
+def run_pipeline(
     config: RunConfig,
-    questions: list[EvalQuestion],
+    questions: list[Ask],
     graph: GraphArtifact,
     env: Env,
     ctx: Context,
@@ -299,6 +317,7 @@ def _run_pipeline(
     from warehouse_graph.graph.embed import get_embedder
 
     from warehouse_qa.eval.retrieval import load_hybrid_params
+    from warehouse_qa.pipeline.gates import GateParams
     from warehouse_qa.pipeline.runner import Pipeline, PipelineConfig
     from warehouse_qa.retrieval.rerank import CrossEncoderReranker
 
@@ -319,6 +338,7 @@ def _run_pipeline(
             timeout_s=config.timeout_s,
             context_budget=config.context_budget,
             audit=config.audit,
+            gates=config.gates,
         ),
         graph,
         load_policies(env.policies),
@@ -328,6 +348,7 @@ def _run_pipeline(
         embedder=get_embedder(graph.meta.embedding_model),
         hybrid_params=load_hybrid_params(),
         gold_nodes=load_gold_nodes(),
+        gate_params=GateParams.load() if config.gates == "enforce" else GateParams(),
     )
     records = asyncio.run(pipeline.run(questions))
     for r in records:
@@ -337,15 +358,16 @@ def _run_pipeline(
     return records, round(client.spent_usd - spent_before, 6)
 
 
+def load_records(run_dir: Path) -> list[QuestionRecord]:
+    lines = (run_dir / "questions.jsonl").read_text(encoding="utf-8").splitlines()
+    return [QuestionRecord.model_validate_json(x) for x in lines if x.strip()]
+
+
 def rescore(run_dir: Path, run_meta: dict[str, Any] | None = None) -> dict[str, Any]:
     """Recompute scores, summary and report from questions.jsonl only."""
     questions = {q.id: q for q in load_questions()}
     gold_nodes = load_gold_nodes()
-    records = [
-        QuestionRecord.model_validate_json(line)
-        for line in (run_dir / "questions.jsonl").read_text(encoding="utf-8").splitlines()
-        if line.strip()
-    ]
+    records = load_records(run_dir)
     scores = [
         score(
             questions[r.id],
@@ -363,6 +385,7 @@ def rescore(run_dir: Path, run_meta: dict[str, Any] | None = None) -> dict[str, 
         "run": run_meta or previous.get("run", {}),
         "gold_errors": sorted(r.id for r in records if r.gold_error),
         "metrics": summarize(questions, scores),
+        "reliability": reliability(records, scores),
     }
     write_text_lf(summary_path, json.dumps(summary, indent=2, default=str) + "\n")
     write_text_lf(run_dir / "scores.jsonl", "".join(s.model_dump_json() + "\n" for s in scores))

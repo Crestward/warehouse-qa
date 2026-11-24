@@ -3,8 +3,8 @@
 Order: answer-level warnings first, then nodes in rank order, each table with its columns
 (type, description, masked flag). Deprecated, trap, non-canonical and stale nodes are kept
 **with their warning label** rather than dropped, so the model can say why it avoided them.
-Descriptions and caveats are passed as quoted data inside <data> blocks, never as
-instructions (the injection defence itself is tested in Phase 7).
+Every piece of documentation text is passed as data inside a <data> block, never as instructions,
+and can't close its block: angle brackets in it are escaped (task 7.2).
 
 Tokens are estimated as characters / 4; the same estimator is applied to config 1's schema
 dump, so the two context sizes are comparable.
@@ -34,6 +34,11 @@ class PackedContext:
 
 def _one_line(text: str, limit: int = 300) -> str:
     return " ".join((text or "").split())[:limit]
+
+
+def _data(text: str, limit: int = 300) -> str:
+    """Documentation text as delimited data. It can't contain (or fake) a delimiter."""
+    return f"<data>{_one_line(text, limit).replace('<', '&lt;').replace('>', '&gt;')}</data>"
 
 
 async def pack(
@@ -77,7 +82,7 @@ async def _block(
         if rec is None:
             return None
         node = rec["node"]
-        lines = [f"TABLE {node['relation']}{tag}", f"<data>{_one_line(node['description'])}</data>"]
+        lines = [f"TABLE {node['relation']}{tag}", _data(node["description"])]
         for col in rec["columns"]:
             seen_columns.add(col["id"])
             full = await tools.node(col["id"])
@@ -88,10 +93,9 @@ async def _block(
             if c.get("deprecated"):
                 flags.append(f"deprecated, use {c.get('replaced_by')}")
             flag = f" [{'; '.join(flags)}]" if flags else ""
-            desc = _one_line(c.get("description", ""), 120)
+            desc = _data(c["description"], 120) if c.get("description") else ""
             lines.append(
-                f"  {col['name']} {c.get('data_type') or ''}{flag}"
-                + (f" -- {desc}" if desc else "")
+                f"  {col['name']} {c.get('data_type') or ''}{flag}" + (f" {desc}" if desc else "")
             )
         return "\n".join(lines)
     if kind == "column":
@@ -100,7 +104,7 @@ async def _block(
             return None
         c = rec["node"]
         head = f"COLUMN {c['parent']}.{c['name']} {c.get('data_type') or ''}{tag}"
-        return f"{head}\n<data>{_one_line(c['description'])}</data>"
+        return f"{head}\n{_data(c['description'])}"
     if kind == "metric":
         rec = await tools.metric(nid)
         if rec is None:
@@ -108,7 +112,7 @@ async def _block(
         m = rec["metric"]
         canonical = "canonical" if m.get("canonical") else "NOT canonical"
         return (
-            f"METRIC {m['name']} ({canonical}){tag}\n<data>{_one_line(m['description'])}</data>\n"
+            f"METRIC {m['name']} ({canonical}){tag}\n{_data(m['description'])}\n"
             f"  definition: {m['expression']}\n  sql: {_one_line(rec['sql'], 400)}"
         )
     if kind == "caveat":
@@ -117,15 +121,13 @@ async def _block(
             return None
         c = rec["node"]
         head = f"CAVEAT {c['name']} (severity {c['severity']})"
-        return f"{head}\n<data>{_one_line(c['description'], 500)}</data>"
+        return f"{head}\n{_data(c['description'], 500)}"
     if kind == "query_example":
         rec = await tools.node(nid)
         if rec is None:
             return None
         q = rec["node"]
-        return (
-            f"EXAMPLE <data>{_one_line(q['description'])}</data>\n  sql: {_one_line(q['sql'], 600)}"
-        )
+        return f"EXAMPLE {_data(q['description'])}\n  sql: {_one_line(q['sql'], 600)}"
     if kind == "exposure":
         summary = retrieved.summaries.get(nid, {})
         return f"DASHBOARD {summary.get('name', nid)}{tag}"

@@ -58,3 +58,8 @@ class QuestionRecord(BaseModel):
     checks: list[str] = Field(default_factory=list)  # verification outcome per attempt
     repairs: int = 0
     reason_code: str | None = None  # why it abstained or refused
+    # Phase 7: what Gate A/B decide from, so thresholds are calibrated offline (task 7.7)
+    signals: dict[str, Any] = Field(default_factory=dict)
+    confidence: float | None = None  # Gate B's score; None when gates are off
+    clarify_options: list[str] = Field(default_factory=list)
+    suppressed_groups: int | None = None  # None: small-cell suppression didn't apply

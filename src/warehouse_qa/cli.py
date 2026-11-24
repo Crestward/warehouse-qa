@@ -139,14 +139,62 @@ def contamination(write: Path | None) -> int:
     return 1 if unreviewed else 0
 
 
-def run(config: Path, split_name: str, skip_preflight: bool) -> int:
+def run(config: Path, split_name: str, skip_preflight: bool, gates: str | None) -> int:
     from warehouse_qa.eval.harness import RunConfig
     from warehouse_qa.eval.harness import run as run_eval
 
     _graph_env()
-    out = run_eval(RunConfig.load(config), split_name, skip_preflight=skip_preflight)
+    cfg = RunConfig.load(config)
+    if gates:
+        cfg = RunConfig.model_validate({**cfg.model_dump(), "gates": gates})
+    out = run_eval(cfg, split_name, skip_preflight=skip_preflight)
     print(f"wrote {out}")
     print((out / "report.md").read_text(encoding="utf-8").split("## By category")[0])
+    return 0
+
+
+def redteam(config: Path, skip_preflight: bool) -> int:
+    """The 50 attacks on one config. Fails on any leak."""
+    from warehouse_qa.eval.harness import RunConfig
+    from warehouse_qa.eval.redteam import run as run_redteam
+
+    _graph_env()
+    out = run_redteam(RunConfig.load(config), skip_preflight=skip_preflight)
+    print(f"wrote {out}")
+    print((out / "report.md").read_text(encoding="utf-8").split("## Per prompt")[0])
+    return 1 if json.loads((out / "summary.json").read_text("utf-8"))["leaked"] else 0
+
+
+def calibrate(run_dir: Path, write: bool) -> int:
+    """Gate A/B thresholds from a recorded observe run on dev (offline, $0)."""
+    import yaml
+
+    from warehouse_qa.eval.calibration_report import render
+    from warehouse_qa.eval.harness import load_records
+    from warehouse_qa.eval.metrics import score
+    from warehouse_qa.eval.reliability import calibrate as run_calibration
+    from warehouse_qa.eval.schema import load_questions, write_text_lf
+    from warehouse_qa.pipeline.gates import GATES_CONFIG
+
+    config = yaml.safe_load((run_dir / "config.yaml").read_text(encoding="utf-8"))
+    if config["split"] != "dev" or config.get("gates") != "observe":
+        print("calibrate needs a `gates: observe` run on dev (never test)")
+        return 1
+    questions = {q.id: q for q in load_questions()}
+    records = load_records(run_dir)
+    correct = {r.id: score(questions[r.id], r, set()).exec_correct is True for r in records}
+    params, evidence = run_calibration(records, questions, correct)
+    report = render(run_dir.name, params, evidence)
+    print(report)
+    if write:
+        body = {"tuned_on": run_dir.name, "params": params.model_dump()}
+        write_text_lf(
+            GATES_CONFIG,
+            "# Gate A/B, chosen by `eval calibrate` on dev (docs/gates.md).\n"
+            + yaml.safe_dump(body, sort_keys=False),
+        )
+        write_text_lf(Path("docs/gates.md"), report)
+        print(f"wrote {GATES_CONFIG} and docs/gates.md")
     return 0
 
 
@@ -250,6 +298,13 @@ def main(argv: list[str] | None = None) -> int:
     ru.add_argument("--config", type=Path, required=True)
     ru.add_argument("--split", default="dev", choices=["dev", "test", "dev_mini"])
     ru.add_argument("--skip-preflight", action="store_true")
+    ru.add_argument("--gates", choices=["off", "observe", "enforce"], help="override the config")
+    rd = ev.add_parser("redteam", help="run the 50 red-team prompts")
+    rd.add_argument("--config", type=Path, required=True)
+    rd.add_argument("--skip-preflight", action="store_true")
+    ca = ev.add_parser("calibrate", help="Gate A/B thresholds from a dev observe run (offline)")
+    ca.add_argument("run_dir", type=Path)
+    ca.add_argument("--write", action="store_true", help="save configs/gates.yaml + docs/gates.md")
     rs = ev.add_parser("rescore", help="recompute metrics offline from a run's JSONL")
     rs.add_argument("run_dir", type=Path)
     cm = ev.add_parser("compare", help="paired McNemar between two eval runs")
@@ -275,7 +330,11 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "contamination":
         return contamination(args.write)
     if args.command == "run":
-        return run(args.config, args.split, args.skip_preflight)
+        return run(args.config, args.split, args.skip_preflight, args.gates)
+    if args.command == "redteam":
+        return redteam(args.config, args.skip_preflight)
+    if args.command == "calibrate":
+        return calibrate(args.run_dir, args.write)
     if args.command == "compare":
         return compare(args.run_a, args.run_b)
     if args.command == "retrieve":

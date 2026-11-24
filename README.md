@@ -4,7 +4,7 @@ A permission-aware, lineage-aware "ask your warehouse" assistant. Retrieval runs
 
 Part of a pair of linked portfolio projects that share [`warehouse-graph`](https://github.com/Crestward/warehouse-graph), a lineage/metadata graph served over MCP. The sibling project is [`pipeline-sentinel`](https://github.com/Crestward/pipeline-sentinel).
 
-> **Status: Phase 6 (SQL generation and verification).** Eval set and harness (Phase 4), graph-aware retrieval (Phase 5), and the full question → governed SQL → verified answer pipeline are built and measured on dev. Gates and the red-team run come in Phase 7.
+> **Status: Phase 7 (governance hardening and gates).** The full question → governed SQL → verified answer pipeline is built, calibrated and red-teamed on dev. The one-time test run, the demo page and the CLI come in Phase 8.
 
 ## How it will be measured
 Everything is in [`docs/eval.md`](docs/eval.md):
@@ -88,3 +88,21 @@ uv run warehouse-qa eval compare results/<run_a> results/<run_b>         # paire
 
 ## Licence
 MIT. See [LICENSE](LICENSE).
+
+## Governance and gates (Phase 7), on dev and the red team
+| | Result |
+|---|---|
+| **Red team, real model** | **0 / 50 leaks**, 0 / 10 prompt injections obeyed |
+| **Red team, compromised model** (scripted to send an attacker's SQL) | **0 / 1,100 leaks**; with the controls switched off the same attacks do leak |
+| Mode accuracy (answer / assume / clarify / decline) | **98.3%** lenient (59/60), baseline 1: 90.0% (54/60), p = 0.125 |
+| Clarifying questions | 4 asked, 4 right, 0 needless |
+| Over-refusal on allowed questions | 2.0% (1/49) |
+| Execution accuracy | 93.9% (46/49), baseline 1: 95.9% (47/49), p = 1.0 |
+| Accuracy when it answers | 95.8% at 80% coverage |
+
+- **Small cells:** no group of fewer than 5 people leaves the database.
+- **Non-confirming refusals:** a hidden column, a column that never existed and a rejected query all read the same.
+- **Gate A** (before the LLM) asks "Auckland Queen St or Brisbane Queen St?", or declines forecasts, causes and advice, without paying for a call.
+- **Honest negatives:** Gate B's confidence can't tell the two wrong answers on dev from the right ones (AURC no better than chance), and two of Gate A's planned signals hurt and were switched off.
+
+Threat model and everything the red team changed: [`docs/threat-model.md`](docs/threat-model.md). Calibration: [`docs/gates.md`](docs/gates.md), decisions Q5–Q6.

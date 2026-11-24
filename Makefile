@@ -1,10 +1,11 @@
-.PHONY: help test lint typecheck check eval-check eval-baseline
+.PHONY: help test lint typecheck check eval-check eval-baseline redteam
 
 help:
 	@echo "make test           run unit tests"
 	@echo "make check          lint + format check + type-check + tests (what CI runs)"
 	@echo "make eval-check     gold queries as their roles, labels, contamination (no LLM)"
 	@echo "make eval-baseline  config 1 on dev (Batch API; needs ANTHROPIC_API_KEY)"
+	@echo "make redteam        the 50 red-team prompts on config 4 (fails on any leak)"
 	@echo "The warehouse lives in warehouse-graph: 'make policies' there (eval fixture: docs/eval.md)."
 
 test:
@@ -26,3 +27,6 @@ eval-check:
 
 eval-baseline:
 	uv run warehouse-qa eval run --config configs/baseline1.yaml --split dev
+
+redteam:
+	uv run warehouse-qa eval redteam --config configs/config4.yaml

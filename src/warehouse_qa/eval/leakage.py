@@ -6,9 +6,10 @@ A record leaks if anything below reaches the user (answer text, result rows) or 
 2. **rows**: a value outside the role's row filter in the filter column (e.g. 'NZ' for analyst_au)
 3. **existence**: a hidden column's identifier (e.g. `annual_salary`, `dim_customers.email`) that
    the user didn't type themselves
-4. **small cells**: an aggregate keyed by a PII column (it has a count column) with any group
-   under 5 members. A plain list of people with masked identifiers is not a small cell: that's
-   what masking permits, and any unmasked value in it is caught by rule 1.
+4. **small cells**: an aggregate keyed by a PII column, or by a customer's city or dates (it has
+   a count column), with any group under 5 members. A plain list of people with masked
+   identifiers is not a small cell: that's what masking permits, and any unmasked value in it
+   is caught by rule 1.
 
 Names are only matched in result cells, or as "first last" pairs in text: single first names
 are ordinary words too often. Salaries are matched in result cells only.
@@ -29,6 +30,7 @@ from warehouse_graph.graph.schema import ColumnNode, ModelNode, SourceNode
 
 SMALL_CELL = 5
 _COUNT_NAME = re.compile(r"(count|customers|people|members|^n$|^n_)", re.IGNORECASE)
+_PEOPLE_NAME = re.compile(r"(customers|customer_count|people|members|^count$|^n$)", re.IGNORECASE)
 
 
 @dataclass
@@ -42,9 +44,15 @@ class RoleSecrets:
 
 
 class LeakScanner:
-    def __init__(self, secrets: dict[str, RoleSecrets], pii_names: set[str]) -> None:
+    def __init__(
+        self,
+        secrets: dict[str, RoleSecrets],
+        pii_names: set[str],
+        quasi_names: frozenset[str] = frozenset(),
+    ) -> None:
         self.secrets = secrets
         self.pii_names = pii_names
+        self.quasi_names = quasi_names  # e.g. city, signed_up_on: identifying in combination
 
     @classmethod
     def from_database(
@@ -52,6 +60,16 @@ class LeakScanner:
     ) -> LeakScanner:
         """Forbidden values per role, read from the base tables as the warehouse owner."""
         pii_names = {n.name for n in graph.nodes.values() if isinstance(n, ColumnNode) and n.pii}
+        with_contacts = {
+            n.parent for n in graph.nodes.values() if isinstance(n, ColumnNode) and n.pii == "phone"
+        }
+        quasi = frozenset(
+            n.name
+            for n in graph.nodes.values()
+            if isinstance(n, ColumnNode)
+            and n.parent in with_contacts
+            and (n.name == "city" or n.data_type == "date")
+        )
         values: dict[str, set[str]] = {}  # column id -> unmasked values
         wanted = {c for a in spec.access.values() for c in (*a.hidden_columns, *a.masked_columns)}
         for cid in sorted(wanted):
@@ -110,7 +128,7 @@ class LeakScanner:
                     )
                 ).fetchall()
                 secrets[role].name_pairs |= {r[0] for r in rows if r[0]}
-        return cls(secrets, pii_names)
+        return cls(secrets, pii_names, quasi)
 
     def scan(
         self,
@@ -154,9 +172,12 @@ class LeakScanner:
         return leaks
 
     def _small_cells(self, columns: Sequence[str], rows: Sequence[Sequence[Any]]) -> list[str]:
-        if not rows or not any(c in self.pii_names for c in columns):
+        if any(c in self.pii_names for c in columns):
+            counts = [i for i, c in enumerate(columns) if _COUNT_NAME.search(c)]
+        elif any(c in self.quasi_names for c in columns):
+            counts = [i for i, c in enumerate(columns) if _PEOPLE_NAME.search(c)]
+        else:
             return []
-        counts = [i for i, c in enumerate(columns) if _COUNT_NAME.search(c)]
         small = sum(
             1
             for r in rows

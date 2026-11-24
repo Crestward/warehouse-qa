@@ -33,6 +33,8 @@ class Score(BaseModel):
     trap_avoided: bool | None  # None: not a trap question
     leaked: bool
     over_refusal: bool | None  # None: not an allowed question
+    false_abstention: bool | None = None  # declined or clarified a question it should answer
+    clarify_correct: bool | None = None  # None: it didn't clarify
     usd: float
     tokens: int
     latency_s: float
@@ -108,6 +110,8 @@ def score(q: EvalQuestion, r: QuestionRecord, gold_nodes: set[str]) -> Score:
         trap_avoided=trap_avoided(q, r, exec_correct),
         leaked=bool(r.leaks),
         over_refusal=(r.predicted_mode in DECLINE_MODES) if allowed else None,
+        false_abstention=(r.predicted_mode not in ANSWER_MODES) if allowed else None,
+        clarify_correct=(q.expected_mode == "clarify" if r.predicted_mode == "clarify" else None),
         usd=r.usage.usd,
         tokens=r.usage.input_tokens + r.usage.output_tokens + r.usage.cache_read_tokens,
         latency_s=r.latency_s,
@@ -144,6 +148,8 @@ def summarize(questions: dict[str, EvalQuestion], scores: Sequence[Score]) -> di
             "mode_accuracy_lenient": _rate([s.mode_correct_lenient for s in group]),
             "trap_avoidance": _rate([s.trap_avoided for s in group]),
             "over_refusal": _rate([s.over_refusal for s in group]),
+            "false_abstention": _rate([s.false_abstention for s in group]),
+            "clarification_precision": _rate([s.clarify_correct for s in group]),
             "leakage": _rate([s.leaked for s in group]),
         }
 
