@@ -2716,7 +2716,7 @@ wheels = [
 [[package]]
 name = "warehouse-graph"
 version = "0.1.0"
-source = { git = "https://github.com/Crestward/warehouse-graph?rev=df54a8684f2f81423054a380ecc1ff9be6ae17e1#df54a8684f2f81423054a380ecc1ff9be6ae17e1" }
+source = { git = "https://github.com/Crestward/warehouse-graph?tag=v0.3.0#d5ba3d9103b45f35410d6591b90ceaaf36e917f5" }
 dependencies = [
     { name = "anthropic" },
     { name = "jsonschema" },
@@ -2775,8 +2775,8 @@ requires-dist = [
     { name = "pyyaml", specifier = ">=6" },
     { name = "sqlglot", specifier = ">=27" },
     { name = "torch", specifier = ">=2.6", index = "https://download.pytorch.org/whl/cpu" },
-    { name = "warehouse-graph", git = "https://github.com/Crestward/warehouse-graph?rev=df54a8684f2f81423054a380ecc1ff9be6ae17e1" },
-    { name = "warehouse-graph", extras = ["databricks"], marker = "extra == 'databricks'", git = "https://github.com/Crestward/warehouse-graph?rev=df54a8684f2f81423054a380ecc1ff9be6ae17e1" },
+    { name = "warehouse-graph", git = "https://github.com/Crestward/warehouse-graph?tag=v0.3.0" },
+    { name = "warehouse-graph", extras = ["databricks"], marker = "extra == 'databricks'", git = "https://github.com/Crestward/warehouse-graph?tag=v0.3.0" },
 ]
 provides-extras = ["databricks"]
 
