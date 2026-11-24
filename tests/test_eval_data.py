@@ -72,6 +72,8 @@ def test_splits_are_frozen_disjoint_and_stratified() -> None:
     dev, test, mini = (set(load_split(s)) for s in ("dev", "test", "dev_mini"))
     assert len(dev) == 60 and len(test) == 90 and len(mini) == 30
     assert not dev & test and dev | test == set(QUESTIONS) and mini <= dev
+    ci = set(load_split("ci"))
+    assert len(ci) == 20 and ci <= mini
     for cat, n in Counter(q.category for q in QUESTIONS.values()).items():
         in_dev = sum(1 for i in dev if QUESTIONS[i].category == cat)
         assert abs(in_dev - n * 0.4) <= 1
@@ -98,6 +100,29 @@ def _env_or_skip() -> Env:
     if not env.graph.exists():
         pytest.skip("no warehouse-graph build/graph.wgz; run `make policies` there")
     return env
+
+
+@pytest.mark.integration
+def test_label_review_alternatives_run_and_differ_from_gold() -> None:
+    from warehouse_graph.adapters import PostgresAdapter
+    from warehouse_graph.governance import Principal
+
+    from warehouse_qa.eval.compare import results_match
+    from warehouse_qa.eval.label_review import alternative_rows, load_review
+
+    if not Env.load().graph.exists():
+        pytest.skip("no warehouse-graph build/graph.wgz")
+    adapter = PostgresAdapter()
+    rows = alternative_rows(adapter, load_review())
+    for qid, alt in rows.items():
+        q = QUESTIONS[qid]
+        assert q.gold_sql is not None
+        session = adapter.session_as(Principal(q.role, ""))
+        try:
+            gold = adapter.execute(session, q.gold_sql, 1000, 60).rows
+        finally:
+            session.close()
+        assert not results_match(gold, alt), f"{qid}: the alternative is the same answer"
 
 
 @pytest.mark.integration

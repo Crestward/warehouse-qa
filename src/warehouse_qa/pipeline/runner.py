@@ -1,6 +1,6 @@
 """The P1 pipeline over a batch of questions (tasks 6.1-6.8, 7.1-7.6), in Batch API rounds.
 
-    retrieve (hybrid | oracle) -> pack context                         per question, via MCP
+    retrieve (hybrid | vector | oracle) -> pack                         per question, via MCP
     Gate A: clarify | abstain | carry on                               no LLM call if it stops
     round 0: generate SQL for every question left                      one batch
       static checks -> row scope -> small cells -> dry run as the role -> execute as the role
@@ -41,9 +41,14 @@ from warehouse_qa.pipeline.small_cells import MIN_CELL, SmallCellError, SmallCel
 from warehouse_qa.pipeline.verify import REPAIR_HARD, Verifier
 from warehouse_qa.retrieval.packer import PackedContext, pack
 from warehouse_qa.retrieval.rerank import Reranker
-from warehouse_qa.retrieval.retrievers import HybridParams, HybridRetriever, Retrieved
+from warehouse_qa.retrieval.retrievers import (
+    HybridParams,
+    HybridRetriever,
+    Retrieved,
+    VectorRetriever,
+)
 from warehouse_qa.retrieval.tools import GraphTools, open_tools
-from warehouse_qa.retrieval.understanding import AS_OF
+from warehouse_qa.retrieval.understanding import AS_OF, understand
 from warehouse_qa.sqlcheck import StaticCheckError, check_sql
 
 
@@ -53,7 +58,7 @@ class PipelineConfig:
     effort: Any = "low"
     max_tokens: int = 1500
     batch: bool = True
-    retriever: str = "hybrid"  # hybrid | oracle
+    retriever: str = "hybrid"  # hybrid | vector | oracle
     verification: bool = True
     max_repairs: int = 2
     row_limit: int = 1000
@@ -235,6 +240,9 @@ class Pipeline:
         if self.c.retriever == "oracle":
             gold = [*self.gold_nodes.get(q.id, []), *q.gold_nodes]
             retrieved = await oracle_retrieval(gold, tools)
+        elif self.c.retriever == "vector":
+            retrieved = await VectorRetriever().retrieve(q.question, tools)
+            retrieved.understanding = await understand(q.question, tools)  # for Gate A only
         else:
             retrieved = await self.retriever.retrieve(q.question, tools)
         context = await pack(retrieved, tools, self.c.context_budget)
@@ -385,6 +393,10 @@ class Pipeline:
 
     def _gate_b(self, job: Job, r: QuestionRecord) -> None:
         if self.c.gates == "off":
+            return
+        if self.gate_params.retrieval_signal not in job.signals:  # vector: no retrieval margin
+            if self.c.gates == "enforce":
+                r.predicted_mode = "answer_with_assumption" if job.assume else "answer"
             return
         r.confidence = gates.confidence(
             job.signals, job.checks, job.repairs, job.warnings, self.gate_params

@@ -1,13 +1,17 @@
-"""Command-line entry point: `warehouse-qa eval <command>`."""
+"""Command-line entry point: `warehouse-qa ask`, `demo-record` and `eval <command>`."""
 
 from __future__ import annotations
 
 import argparse
+import io
 import json
 import sys
 from pathlib import Path
+from typing import Any
 
 from warehouse_qa.config import Env
+
+ROLES = ("admin", "finance", "marketing", "analyst_au", "analyst_nz")
 
 
 def _graph_env() -> Env:
@@ -16,6 +20,72 @@ def _graph_env() -> Env:
     env = Env.load()
     load_dotenv(env.graph.parents[1] / ".env")  # API key and DB settings live in warehouse-graph
     return env
+
+
+def ask(role: str, question: str) -> int:
+    """One question as one role: answer, rows, SQL, tables, caveats."""
+    from warehouse_qa.service import Assistant, NotRecordedError
+
+    _graph_env()
+    try:
+        answer = Assistant().ask(role, question)
+    except NotRecordedError as e:
+        print(e)
+        return 1
+    r = answer.record
+    print(f"[{answer.outcome}]")
+    if answer.answered:
+        print(f"\n{_table(r.columns, r.rows)}\n")
+    print(r.answer_text)
+    if answer.answered:
+        print(f"\nSQL (run as {role}):\n{r.sql}")
+        if answer.lineage:
+            edges = ", ".join(
+                f"{a.split('.', 1)[1]} -> {b.split('.', 1)[1]}" for a, b in answer.lineage
+            )
+            print(f"\nLineage: {edges}")
+    if r.usage.usd:
+        print(f"\nUS${r.usage.usd:.4f}")
+    return 0
+
+
+def _table(columns: list[str], rows: list[list[Any]], limit: int = 20) -> str:
+    def cell(v: Any) -> str:
+        if isinstance(v, float):
+            return f"{v:,.2f}".rstrip("0").rstrip(".")
+        return "" if v is None else str(v)
+
+    body = [[cell(v) for v in row] for row in rows[:limit]]
+    widths = [max(len(x) for x in col) for col in zip(columns, *body, strict=True)]
+    lines = ["  ".join(v.ljust(w) for v, w in zip(row, widths, strict=True)) for row in body]
+    head = "  ".join(c.ljust(w) for c, w in zip(columns, widths, strict=True))
+    more = [f"... {len(rows) - limit} more"] if len(rows) > limit else []
+    return "\n".join([head, "  ".join("-" * w for w in widths), *lines, *more])
+
+
+def demo_record() -> int:
+    """Record the model replies of the demo questions, so the demo runs without an API key."""
+    from warehouse_qa.service import RECORDED, Assistant, demo_questions
+
+    _graph_env()
+    bot = Assistant(cache_dir=RECORDED)
+    for q in demo_questions():
+        a = bot.ask(q.role, q.question)
+        print(f"{q.role:<11} {a.outcome:<28} {a.record.reason_code or '':<24} {q.question}")
+    return 0
+
+
+def gate(run_dir: Path, write_baseline: bool) -> int:
+    """The PR gate: a ci-split run vs the committed baseline."""
+    from warehouse_qa.eval.ci_gate import BASELINE, check, make_baseline
+
+    if write_baseline:
+        make_baseline(run_dir)
+        print(f"wrote {BASELINE}")
+        return 0
+    passed, summary = check(run_dir)
+    print(summary)
+    return 0 if passed else 1
 
 
 def validate() -> int:
@@ -284,6 +354,10 @@ def compare(run_a: Path, run_b: Path) -> int:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="warehouse-qa")
     top = parser.add_subparsers(dest="group", required=True)
+    ak = top.add_parser("ask", help="ask one question as one role")
+    ak.add_argument("--role", required=True, choices=ROLES)
+    ak.add_argument("question")
+    top.add_parser("demo-record", help="record the demo questions' model replies")
     ev = top.add_parser("eval", help="the P1 eval set and harness").add_subparsers(
         dest="command", required=True
     )
@@ -296,9 +370,16 @@ def main(argv: list[str] | None = None) -> int:
     co.add_argument("--write", type=Path, help="write the markdown report here")
     ru = ev.add_parser("run", help="run a config on a split")
     ru.add_argument("--config", type=Path, required=True)
-    ru.add_argument("--split", default="dev", choices=["dev", "test", "dev_mini"])
+    ru.add_argument("--split", default="dev", choices=["dev", "test", "dev_mini", "ci"])
     ru.add_argument("--skip-preflight", action="store_true")
     ru.add_argument("--gates", choices=["off", "observe", "enforce"], help="override the config")
+    rl = ev.add_parser("results", help="tables and plot in docs/results.md, from saved runs")
+    rl.add_argument("--split", default="test", choices=["dev", "test"])
+    lr = ev.add_parser("label-review", help="sensitivity of the results to questionable labels")
+    lr.add_argument("--split", default="test", choices=["test"])
+    gt = ev.add_parser("gate", help="PR gate: a ci-split run against the committed baseline")
+    gt.add_argument("run_dir", type=Path)
+    gt.add_argument("--write-baseline", action="store_true", help="from a full dev run")
     rd = ev.add_parser("redteam", help="run the 50 red-team prompts")
     rd.add_argument("--config", type=Path, required=True)
     rd.add_argument("--skip-preflight", action="store_true")
@@ -320,6 +401,30 @@ def main(argv: list[str] | None = None) -> int:
     cr.add_argument("run_a", type=Path)
     cr.add_argument("run_b", type=Path)
     args = parser.parse_args(argv)
+    if isinstance(sys.stdout, io.TextIOWrapper):  # Windows consoles default to cp1252
+        sys.stdout.reconfigure(encoding="utf-8")
+
+    if args.group == "ask":
+        return ask(args.role, args.question)
+    if args.group == "demo-record":
+        return demo_record()
+    if args.command == "results":
+        from warehouse_qa.eval.results import write as write_results
+
+        write_results(args.split)
+        print("wrote docs/results.md and docs/img/risk_coverage.svg")
+        return 0
+    if args.command == "label-review":
+        from warehouse_graph.adapters import PostgresAdapter
+
+        from warehouse_qa.eval.label_review import write as write_review
+
+        _graph_env()
+        write_review(PostgresAdapter(), args.split)
+        print("wrote docs/label-review.md")
+        return 0
+    if args.command == "gate":
+        return gate(args.run_dir, args.write_baseline)
 
     if args.command == "validate":
         return validate()

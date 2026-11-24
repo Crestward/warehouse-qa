@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 400" role="img" aria-label="Risk against coverage for the main system">
+<style>.s{fill:#fcfcfb}.t{fill:#0b0b0b}.u{fill:#52514e}.g{stroke:#e4e3de}.l{stroke:#2a78d6}.m{fill:#2a78d6}.o{fill:#8b8a84}.r{stroke:#fcfcfb}text{font-family:system-ui,sans-serif;font-size:12px}@media(prefers-color-scheme:dark){.s{fill:#1a1a19}.t{fill:#fff}.u{fill:#c3c2b7}.g{stroke:#3a3a37}.l{stroke:#3987e5}.m{fill:#3987e5}.r{stroke:#1a1a19}}</style>
+<rect class="s" width="720" height="400" rx="8"/>
+<text class="t" x="20" y="26" style="font-size:15px;font-weight:600">Share of answers that are wrong, by how many questions are answered (test)</text>
+<text class="u" x="20" y="44">Line: main system, most confident answers first. Dots: each config as it runs.</text>
+<line class="g" x1="60" x2="570" y1="344.0" y2="344.0"/>
+<text class="u" x="52" y="348.0" text-anchor="end">0%</text>
+<line class="g" x1="60" x2="570" y1="272.0" y2="272.0"/>
+<text class="u" x="52" y="276.0" text-anchor="end">5%</text>
+<line class="g" x1="60" x2="570" y1="200.0" y2="200.0"/>
+<text class="u" x="52" y="204.0" text-anchor="end">10%</text>
+<line class="g" x1="60" x2="570" y1="128.0" y2="128.0"/>
+<text class="u" x="52" y="132.0" text-anchor="end">15%</text>
+<line class="g" x1="60" x2="570" y1="56.0" y2="56.0"/>
+<text class="u" x="52" y="60.0" text-anchor="end">20%</text>
+<text class="u" x="60.0" y="364" text-anchor="middle">0%</text>
+<text class="u" x="162.0" y="364" text-anchor="middle">20%</text>
+<text class="u" x="264.0" y="364" text-anchor="middle">40%</text>
+<text class="u" x="366.0" y="364" text-anchor="middle">60%</text>
+<text class="u" x="468.0" y="364" text-anchor="middle">80%</text>
+<text class="u" x="570.0" y="364" text-anchor="middle">100%</text>
+<text class="u" x="315.0" y="388" text-anchor="middle">Questions answered</text>
+<polyline class="l" points="65.7,344.0 71.3,344.0 77.0,344.0 82.6,344.0 88.4,344.0 94.0,344.0 99.7,344.0 105.3,164.0 111.0,184.0 116.7,200.0 122.3,82.2 128.0,104.0 133.6,122.5 139.4,138.2 145.0,152.0 150.7,164.0 156.3,174.7 162.0,184.0 167.7,192.4 173.3,200.0 179.0,206.9 184.6,213.1 190.4,218.7 196.0,224.0 201.7,228.8 207.3,233.3 213.0,237.3 218.7,241.2 224.3,244.6 230.0,248.0 235.6,251.1 241.4,254.0 247.0,213.1 252.7,217.0 258.3,179.4 264.0,184.0 269.7,188.3 275.3,192.4 281.0,196.3 286.6,200.0 292.4,168.3 298.0,172.6 303.7,176.5 309.3,180.4 315.0,184.0 320.7,187.5 326.3,190.8 332.0,194.0 337.6,167.7 343.4,171.2 349.0,174.7 354.7,177.8 360.3,181.0 366.0,184.0 371.7,186.9 377.3,189.8 383.0,192.4 388.6,195.1 394.4,173.2 400.0,176.0 405.7,178.7 411.3,181.4 417.0,184.0 422.7,186.5 434.0,191.2 439.6,193.5 445.4,195.8 451.0,198.0 456.7,200.0" fill="none" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<line class="g" x1="446.7" x2="580" y1="129.1" y2="129.1"/>
+<circle class="o r" cx="439.7" cy="129.1" r="5" stroke-width="2"><title>2 · vector-only: 14.9% wrong at 74% coverage</title></circle>
+<text class="t" x="584" y="133.1">2 · vector-only</text>
+<line class="g" x1="514.7" x2="580" y1="161.7" y2="161.7"/>
+<circle class="o r" cx="507.7" cy="161.7" r="5" stroke-width="2"><title>1 · schema dump: 12.7% wrong at 88% coverage</title></circle>
+<text class="t" x="584" y="165.7">1 · schema dump</text>
+<line class="g" x1="458.0" x2="580" y1="197.9" y2="197.9"/>
+<circle class="o r" cx="451.0" cy="197.9" r="5" stroke-width="2"><title>6 · no verification: 10.1% wrong at 77% coverage</title></circle>
+<text class="t" x="584" y="201.9">6 · no verification</text>
+<line class="g" x1="463.7" x2="580" y1="200.0" y2="215.0"/>
+<circle class="m r" cx="456.7" cy="200.0" r="5" stroke-width="2"><title>4 · main system: 10.0% wrong at 78% coverage</title></circle>
+<text class="t" x="584" y="219.0">4 · main system</text>
+<line class="g" x1="480.7" x2="580" y1="205.9" y2="235.9"/>
+<circle class="o r" cx="473.7" cy="205.9" r="5" stroke-width="2"><title>oracle retrieval: 9.6% wrong at 81% coverage</title></circle>
+<text class="t" x="584" y="239.9">oracle retrieval</text>
+</svg>

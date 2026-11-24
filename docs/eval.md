@@ -41,9 +41,11 @@ How warehouse-qa is measured (PRD §3.7). This was written in Phase 4, **before*
    - `abstain`: it can't be answered from the warehouse (forecasts, causes, external data, opinions).
 5. **Gold nodes** are what a good retriever should surface: the tables and columns the gold SQL reads, **derived** by sqlglot against the graph (`eval label` → `evals/gold_nodes.json`, never edited by hand), plus the metric and caveats a careful analyst would consult, which are hand-written in the YAML.
 6. **Entities are identified by name where one exists** (store names, not store ids). Gold queries avoid ties at a `LIMIT` cut-off. A tie check was run, and q015, q021, q060 and q076 were changed to remove ties.
-7. **Drafting:** the questions and gold SQL were drafted with an AI assistant. Every gold query was executed as its role and its result inspected, and the tie, contamination and labelling checks above were run. The repo owner spot-checks a sample (`todo.md`).
+7. **Drafting:** the questions and gold SQL were drafted with an AI assistant. Every gold query was executed as its role and its result inspected, and the tie, contamination and labelling checks above were run. The planned spot-check of 15 questions was done **after** the test run, by the same assistant ([`label-review.md`](label-review.md)): 12 agree, 3 have more than one right answer. No independent person has checked the gold SQL.
 
 ### Label changes
+**Closed on 2026-11-24:** the test split has been run, so labels no longer change. Arguable labels are left as they were; `results.md` discusses the ones that failed, and `label-review.md` measures how much the ambiguous ones matter (`eval label-review`).
+
 Dev results may expose labelling errors. Fixing them is allowed **until a test-split result exists**, and every fix is logged here with its reason; the split ids don't change.
 
 | Date | Question | Change | Why |
@@ -91,7 +93,7 @@ A record leaks if any of these reaches the user (answer text, result rows) **or 
 Implementation: `warehouse_qa.eval.leakage`, unit-tested. Single first names count only in result cells, because they are ordinary words too often in text. Phase 7 extended rule 4 to city and dates after a positive control (suppression switched off) showed that the scanner missed them. It also tests the scanner that way, so "0 leaks" can't come from a blind scanner.
 
 ## 7. Splits and hygiene (tasks 4.6–4.7)
-- **dev 60 / test 90** (40/60), stratified by (category, expected mode), seed 20261026. **dev-mini** is 30 questions from dev for day-to-day work.
+- **dev 60 / test 90** (40/60), stratified by (category, expected mode), seed 20261026. **dev-mini** is 30 questions from dev for day-to-day work. **ci** is 20 of those, for the PR eval gate (drawn after the freeze; no other split changed).
 - `evals/splits/manifest.json` stores the sha256 of both YAML files and of each id list. The harness refuses to run if anything changed after the freeze.
 - **Rules:** tune on dev or dev-mini only; run test **once** per frozen config; never re-split once a test result exists.
 - **Contamination:** every question and red-team prompt was compared with every QueryExample and caveat. Cosine ≥ 0.85 on the graph's own embeddings, or word Jaccard ≥ 0.6, counts as a hit. 8 questions whose QueryExample answered them with only a date change were rewritten. The remaining 45 hits were reviewed one by one (`evals/contamination_reviewed.yaml`), and the check fails on any unreviewed hit. Report: [`contamination.md`](contamination.md).
@@ -110,6 +112,8 @@ uv run warehouse-qa eval label --check            # derived gold nodes up to dat
 uv run warehouse-qa eval contamination            # 0 unreviewed hits
 uv run warehouse-qa eval run --config configs/baseline1.yaml --split dev
 uv run warehouse-qa eval rescore results/<run_id> # metrics again, no DB, no LLM
+uv run warehouse-qa eval run --config configs/config4.yaml --split ci       # the PR gate's 20
+uv run warehouse-qa eval gate results/<ci run>                              # vs the baseline
 uv run warehouse-qa eval redteam --config configs/config4.yaml              # the 50 attacks
 uv run warehouse-qa eval run --config configs/config4.yaml --gates observe  # record gate signals
 uv run warehouse-qa eval calibrate results/<observe run> --write            # thresholds, offline
@@ -117,3 +121,19 @@ uv run warehouse-qa eval calibrate results/<observe run> --write            # th
 Retrieval only (Phase 5, no LLM): `eval retrieve --retriever vector|hybrid`, `eval sweep` (dev only) and `eval compare-retrieval <run_a> <run_b>` (paired recall test). Every retrieval run also checks role filtering: no hidden node may be retrieved or packed, and no hidden column may appear in the context.
 - **Output:** `results/<run_id>/` holds `config.yaml`, `questions.jsonl` (one record per question: mode, SQL, result, gold result, nodes, warnings, usage, leaks), `scores.jsonl`, `summary.json` and `report.md`.
 - **LLM calls** go through the shared wrapper: response cache (a re-run of an unchanged config is free), the Batch API (one round for config 1; Phase 6 adds repair rounds), and the global cost ledger with its US$150 cap.
+
+## 10. The test run: frozen before any test result (task 8.1)
+Written and committed **before** the run, so the comparisons can't be chosen afterwards.
+- **Frozen:** the code at the commit recorded in each run's `config.yaml`, `configs/*.yaml`, `configs/gates.yaml`, the questions and splits (hashes in `manifest.json`). The harness refuses a test run from a dirty tree, and a second test run of the same config.
+- **Runs:** configs 1, 2, 4, 6 and oracle, once each on the 90 test questions; the red team on config 4.
+- **Planned comparisons** (paired, exact McNemar, no correction for multiple tests, so p-values are read as descriptive):
+
+| Comparison | Question | Metrics |
+|---|---|---|
+| 4 vs 1 | does the system beat "whole schema in the prompt"? | execution accuracy, lenient mode accuracy, trap avoidance |
+| 4 vs 2 | does hybrid retrieval beat vector-only end to end? | execution accuracy, trap avoidance |
+| 4 vs 6 | what does verification add? | execution accuracy, trap avoidance |
+| oracle vs 4 | how much is retrieval costing? | execution accuracy |
+
+- **Expectations from dev:** 4 ≈ 1 on execution accuracy; 4 > 1 on modes; 4 > 2; 4 ≥ 6, mostly on traps; leakage 0 everywhere.
+- **Not blind:** the author wrote the questions and the system; the wording of the clarify/abstain questions was visible while Gate A was written (design-decisions Q6). Gold SQL was checked by execution and by the author's tooling, not by an independent person.

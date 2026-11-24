@@ -1,0 +1,33 @@
+# The demo page's examples. Their model replies are recorded in demo/recorded, so the demo runs
+# without an API key (`warehouse-qa demo-record` refreshes them). None is an eval question.
+questions:
+  - role: admin
+    question: How much net revenue did each region make in the first half of 2025?
+    shows: a plain answer, and the same question as analyst_nz shows row-level security
+  - role: analyst_nz
+    question: How much net revenue did each region make in the first half of 2025?
+    shows: the same SQL as admin, but the database returns New Zealand rows only
+  - role: analyst_au
+    question: Show revenue for each month of Q2 2026.
+    shows: an ambiguous term (revenue) read as the canonical metric, with the assumption stated
+  - role: marketing
+    question: How much did we spend on ads by channel in August 2026?
+    shows: a stale-data warning, because ad_spend is late
+  - role: marketing
+    question: List customers in Auckland with their email addresses.
+    shows: a refusal that doesn't confirm whether the column exists
+  - role: finance
+    question: List five VIP customers in Auckland with their email addresses.
+    shows: the same kind of request from a role that may see emails, masked by the database
+  - role: analyst_nz
+    question: What is the average lifetime spend by city and sign-up date for customers who joined in August 2026?
+    shows: small groups (fewer than 5 people) left out by the database
+  - role: analyst_au
+    question: What was New Zealand net revenue in August 2026?
+    shows: an explicit request for another region's rows, refused
+  - role: admin
+    question: How is the Queen St store doing this year?
+    shows: a clarifying question with real options, before any model call
+  - role: admin
+    question: What will revenue be next year?
+    shows: an out-of-scope question, declined before any model call

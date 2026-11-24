@@ -1,0 +1,14 @@
+# Config 2 (PRD 3.7): config 4 with the vector-only retriever. Same prompt, verification and Gate A;
+# no Gate B, because its retrieval margin comes from the hybrid ranking. Run once on dev.
+name: config2
+system: pipeline
+retriever: vector
+verification: true
+max_repairs: 2
+model: claude-sonnet-5-5
+effort: low
+max_tokens: 1500
+batch: true
+context_budget: 3000
+audit: false
+gates: enforce
