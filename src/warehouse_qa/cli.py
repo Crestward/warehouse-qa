@@ -223,13 +223,16 @@ def run(config: Path, split_name: str, skip_preflight: bool, gates: str | None) 
     return 0
 
 
-def redteam(config: Path, skip_preflight: bool) -> int:
+def redteam(config: Path, skip_preflight: bool, backend: str) -> int:
     """The 50 attacks on one config. Fails on any leak."""
     from warehouse_qa.eval.harness import RunConfig
     from warehouse_qa.eval.redteam import run as run_redteam
 
     _graph_env()
-    out = run_redteam(RunConfig.load(config), skip_preflight=skip_preflight)
+    cfg = RunConfig.load(config)
+    if backend != cfg.backend:  # the audit table is on Postgres
+        cfg = RunConfig.model_validate({**cfg.model_dump(), "backend": backend, "audit": False})
+    out = run_redteam(cfg, skip_preflight=skip_preflight)
     print(f"wrote {out}")
     print((out / "report.md").read_text(encoding="utf-8").split("## Per prompt")[0])
     return 1 if json.loads((out / "summary.json").read_text("utf-8"))["leaked"] else 0
@@ -383,6 +386,7 @@ def main(argv: list[str] | None = None) -> int:
     rd = ev.add_parser("redteam", help="run the 50 red-team prompts")
     rd.add_argument("--config", type=Path, required=True)
     rd.add_argument("--skip-preflight", action="store_true")
+    rd.add_argument("--backend", choices=["postgres", "databricks"], default="postgres")
     ca = ev.add_parser("calibrate", help="Gate A/B thresholds from a dev observe run (offline)")
     ca.add_argument("run_dir", type=Path)
     ca.add_argument("--write", action="store_true", help="save configs/gates.yaml + docs/gates.md")
@@ -437,7 +441,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "run":
         return run(args.config, args.split, args.skip_preflight, args.gates)
     if args.command == "redteam":
-        return redteam(args.config, args.skip_preflight)
+        return redteam(args.config, args.skip_preflight, args.backend)
     if args.command == "calibrate":
         return calibrate(args.run_dir, args.write)
     if args.command == "compare":

@@ -164,3 +164,14 @@ Recall@k is computed against the derived gold nodes (Phase 4), and trap checks a
 **One outcome for `refuse` and `abstain`.** The page and CLI say "Not answered" for both, because telling them apart would confirm what the wording doesn't (threat model C3).
 
 **The PR eval gate** runs 20 dev questions on the real model, only on labelled PRs from this repo. It fails on any leak or on more than one question lost. One question of slack, because the model isn't deterministic.
+
+## Q8. The same governance on Unity Catalog (Phase 9)
+**Built.** The pipeline depends on the `WarehouseAdapter` protocol and its error types instead of psycopg, so a backend is a constructor argument. Layout and identity decisions are in warehouse-graph D17 and D18.
+
+**Measured:** red team 0/50 on Unity Catalog, with the same mode, message, row count and values as Postgres on all 50 prompts; compromised model 0/215. The model's replies came from the response cache (one changed error message cost a paid repair: US$0.006), so the comparison isolates the backend.
+
+**Found by designing for the second backend:** the static check let a catalog-qualified name through (see `threat-model.md`). Postgres had hidden it.
+
+**A difference that's handled:** a hidden column is *permission denied* on Postgres and *unknown column* on Unity Catalog. Both already read the same to the user (threat model C4), so nothing in the wording depends on the backend.
+
+**Not done, on purpose:** accuracy evals on Databricks (PRD §1.4), and the audit table on Unity Catalog (the `azure` profile uses system tables; Phase 16).

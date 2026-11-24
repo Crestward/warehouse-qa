@@ -33,6 +33,8 @@ ESCALATION = [
     ("select * into marts.copy from marts.fct_orders", "SELECT INTO"),
     ("select * from marts_base.dim_customers", "outside the allowed schemas"),
     ("select * from raw.customers", "outside the allowed schemas"),
+    ("select * from kiwi.marts.dim_customers", "qualified with a catalog"),
+    ("select * from kiwi_admin.marts.dim_employees", "qualified with a catalog"),
     ("select * from pg_catalog.pg_roles", "outside the allowed schemas"),
     ("select * from dim_customers", "outside the allowed schemas"),
     ("select pg_sleep(600)", "function not allowed"),

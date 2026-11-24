@@ -14,11 +14,15 @@ dependencies = [
     "warehouse-graph",
 ]
 
+[project.optional-dependencies]
+databricks = ["warehouse-graph[databricks]"]
+
 [project.scripts]
 warehouse-qa = "warehouse_qa.cli:main"
 
 [tool.uv.sources]
-warehouse-graph = { git = "https://github.com/Crestward/warehouse-graph", tag = "v0.2.0" }
+# Pinned to the Phase 9 commit until it merges and v0.3.0 is tagged (todo.md).
+warehouse-graph = { git = "https://github.com/Crestward/warehouse-graph", rev = "9c11515d38af9b6c95e88dffdb6de82d0114108d" }
 torch = [{ index = "pytorch-cpu" }]
 
 # CPU-only torch (via warehouse-graph's embedding model): the default Linux wheels pull in CUDA.
@@ -63,7 +67,9 @@ files = ["src", "tests"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["tests"]
 markers = [
     "integration: needs the demo warehouse with policies applied (warehouse-graph: make policies)",
+    "databricks: needs the live Databricks workspace (WG_DATABRICKS_TESTS=1)",
 ]
 filterwarnings = ["ignore:sqlglotrs is deprecated:DeprecationWarning"]

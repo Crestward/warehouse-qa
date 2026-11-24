@@ -1,6 +1,6 @@
 # warehouse-qa
 
-**Ask a data warehouse questions in plain English, without the AI being able to leak anything.**
+**Ask a data warehouse questions in plain English, with access enforced by the database, not the prompt.**
 
 Each question runs as the asking user's own database login. The model only writes SQL: the database decides which rows and columns come back, every query is checked before and after it runs, and the assistant asks or declines when it should. It finds its way around with a metadata graph (dbt models, lineage, metrics, known caveats) rather than text chunks.
 
@@ -20,7 +20,7 @@ One of two linked projects built on [`warehouse-graph`](https://github.com/Crest
 | Leaks | 0 | 0 | 0 | 0 |
 | Input tokens per question | 4,133 | 3,971 | 3,000 | 1,223 |
 
-**Security:** 0 leaks in 50 red-team attacks, 0 of 10 prompt injections obeyed, and 0 leaks in 1,100 attempts with a model *scripted to obey the attacker*. With two controls switched off, the same attacks do leak, so the test can see. ([`docs/threat-model.md`](docs/threat-model.md))
+**Security:** 0 leaks in 50 red-team attacks, 0 of 10 prompt injections obeyed, and 0 leaks in 1,100 attempts with a model *scripted to obey the attacker*. On **Databricks Unity Catalog**, from the same policy file: 0 of 50, and 0 of 215. With two controls switched off, the same attacks do leak, so the test can see. ([`docs/threat-model.md`](docs/threat-model.md))
 
 **The honest headline:**
 - **The naive baseline wins on accuracy here** (94.5% vs 86.3%, p = 0.03; 95.9% vs 89.0%, p = 0.125 if other valid readings of four ambiguous questions count, see [label review](docs/label-review.md)). With only 20 tables, the whole schema fits in the prompt, and retrieval sometimes drops a table the model needed: 5 of the 10 wrong answers.
@@ -67,7 +67,23 @@ flowchart TD
 - **The LLM is never the enforcement point.** One `policies.yml` compiles to database roles, row-level security, column grants and masking views, and the same file filters what the model can *see*.
 - **Rows never reach the model.** Repairs get counts, null rates and numeric ranges.
 - **Refusals are fixed text.** A hidden column, a column that never existed and a blocked query read the same.
+- **Two backends, one policy file.** It runs on Postgres and on [Databricks Unity Catalog](#runs-on-postgres-and-databricks-unity-catalog). The pipeline, prompts and SQL don't change.
 - **Trust nothing in the docs.** Descriptions are delimited data; three prompt injections are planted in the demo's dbt docs.
+
+## Runs on Postgres and Databricks Unity Catalog
+[`warehouse-graph`](https://github.com/Crestward/warehouse-graph#runs-on-postgres-and-databricks-unity-catalog) compiles one `policies.yml` to Postgres roles, RLS and masking views, or to Unity Catalog row filters, column masks and one catalog of views per principal. The adapter transpiles the SQL.
+
+| Red team | Postgres | Unity Catalog |
+|---|---|---|
+| 50 prompts, real model | 0 leaks | 0 leaks, and the **same outcome and rows on all 50** |
+| Compromised model | 0 / 1,100 | 0 / 215 (43 attacks, including 21 Databricks-specific ones, as each of 5 roles) |
+| Positive control (suppression off) | leaks | leaks |
+
+```bash
+uv sync --extra databricks
+uv run warehouse-qa eval redteam --config configs/config4.yaml --backend databricks
+```
+**Limit:** the free workspace has one user, so queries run in each role's own catalog but with one login. Rows, masks and hidden columns are tested for every role; that a *different* user is refused outside its catalog isn't (warehouse-graph D18). Accuracy is measured on Postgres only.
 
 ## How it's measured
 - **150 labelled questions** (90 regular, 40 planted traps, 20 that should be clarified or declined) across five roles. Gold SQL runs *as the question's role*. Frozen, hashed 60/90 dev/test split.
