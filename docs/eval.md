@@ -41,7 +41,7 @@ How warehouse-qa is measured (PRD §3.7). This was written in Phase 4, **before*
    - `abstain`: it can't be answered from the warehouse (forecasts, causes, external data, opinions).
 5. **Gold nodes** are what a good retriever should surface: the tables and columns the gold SQL reads, **derived** by sqlglot against the graph (`eval label` → `evals/gold_nodes.json`, never edited by hand), plus the metric and caveats a careful analyst would consult, which are hand-written in the YAML.
 6. **Entities are identified by name where one exists** (store names, not store ids). Gold queries avoid ties at a `LIMIT` cut-off. A tie check was run, and q015, q021, q060 and q076 were changed to remove ties.
-7. **Drafting:** the questions and gold SQL were drafted with an AI assistant. Every gold query was executed as its role and its result inspected, and the tie, contamination and labelling checks above were run. The repo owner spot-checks a sample (`todo.md`).
+7. **Drafting:** the questions and gold SQL were drafted with an AI assistant. Every gold query was executed as its role and its result inspected, and the tie, contamination and labelling checks above were run. A planned spot-check of a sample by the repo owner was **not** done before the test run, so no independent person has checked the gold SQL.
 
 ### Label changes
 **Closed on 2026-11-24:** the test split has been run, so labels no longer change. Three arguable labels it exposed (q017, q021, q026) are discussed in `results.md` and left as they were.
