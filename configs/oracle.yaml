@@ -1,5 +1,6 @@
 # Oracle retrieval (PRD §3.7 upper bound): config 4 with the gold nodes as its context, which
-# separates retrieval errors from generation errors. Run once on dev.
+# separates retrieval errors from generation errors. Gates are off: their signals come from
+# retrieval, which the oracle replaces. Run once on dev.
 name: oracle
 system: pipeline
 retriever: oracle
@@ -11,3 +12,4 @@ max_tokens: 1500
 batch: true
 context_budget: 3000
 audit: false
+gates: "off"

@@ -102,3 +102,50 @@ Recall@k is computed against the derived gold nodes (Phase 4), and trap checks a
 **What it means:** on a 20-table warehouse, "put the whole schema in the prompt" is a strong, cheap baseline, and this project shows that rather than hiding it. The graph's value is everything around the SQL (governance-aware context, warnings, verification, refusals), and context size, which matters as warehouses grow past what fits in a prompt. The stretch cascade (S1) and Phase 7's Gate A/B work on the mode and refusal side, where the main system's edge is.
 
 **Cost:** the whole of Phase 6's iteration (two passes of configs 4, 6 and oracle on dev) billed US$0.75. Config 6's first round is byte-identical to config 4's round 0, so the response cache served it for $0. Project total so far: US$0.99.
+
+## Q5. Small cells, refusals and the red team (Phase 7)
+**Small-cell suppression is enforced in SQL, not on the result.** A `HAVING count(distinct person) >= 5` is added to the SELECT that does the grouping, so a small group never leaves the database, and neither the user nor the stats sent to the LLM can contain it.
+- **In scope:** aggregates keyed by a PII column (masked or not) or by another attribute of a customer table (city, sign-up date), and ungrouped totals filtered on PII.
+- **Out of scope:** plain per-person lists, which show what the column policy allows.
+- **Fails closed:** a grouping whose people can't be counted (key aggregated away, window, correlated subquery) goes back for repair, then abstains.
+- **Checked against the labels:** 12 of the 122 gold queries are in scope, and none of them loses a row, so no label had to change.
+- **Rejected:** dropping rows after execution (the LLM's stats would already have seen them, and a result without a count column can't be checked).
+
+**Refusals are fixed text.** See [`threat-model.md`](threat-model.md) C3–C5. The same sentence covers "hidden", "doesn't exist" and "rejected". It then offers up to three visible tables or metrics close to the question. Whether the question really hit a hidden column is worked out *after* the decision, from the full graph, and only for the audit log.
+
+**Result:** leakage 0/50 on the real model, 0/1,100 with a model scripted to obey every attack, and 0/10 injections obeyed. The positive control (controls off) leaks, as it should. It's also what exposed that the scanner couldn't see city and date groups.
+
+## Q6. Gate A and Gate B: what calibration on dev showed (Phase 7)
+**Built.** Gate A (before generation) uses deterministic signals: out-of-scope intent, future dates, relevance, named things that don't identify one row (looked up as the role), evaluative questions without a measure, metric margin, missing time, and terms with competing definitions. Gate B (after verification) combines the retrieval margin and the verification outcome, equally weighted. An `observe` run records the signals for every question. `eval calibrate` then re-decided 1,872 threshold combinations offline for $0 ([`gates.md`](gates.md)).
+
+**Dev (n = 60), final config 4:**
+
+| | Phase 6 (no gates) | **Phase 7 (gates on)** | Baseline 1 |
+|---|---|---|---|
+| Execution accuracy | 91.8% | **93.9%** (46/49) | 95.9% (47/49) |
+| Mode accuracy, strict | 15.0% | **93.3%** | 15.0% |
+| Mode accuracy, lenient | 91.7% | **98.3%** (59/60) | 90.0% (54/60) |
+| Clarification precision | no clarifying | **4/4** (recall 4/4) | no clarifying |
+| Over-refusal / false abstention | 2.0% | **2.0%** (1/49: q115, a retrieval miss) | 2.0% |
+| Accuracy when it answers | | **95.8%** at 80% coverage | |
+| Leakage | 0 | 0 | 0 |
+
+- **The strict-mode jump is mostly bookkeeping:** before the gates, any answer with a stated assumption counted as `answer_with_assumption`, which was nearly all of them. Lenient mode is the fair comparison.
+- **vs baseline 1:** accuracy 46 vs 47 (2 wins, 3 losses, McNemar p = 1.0): level. Right *behaviour* (lenient mode) 59 vs 54 (6 wins, 1 loss, p = 0.125): better, but not significant at n = 60. The baseline's prompt has no way to ask a question back, so part of that gap is capability, not skill.
+- **vs config 6 (no verification):** trap avoidance 14 vs 11 (p = 0.25). Two are the stale warnings from Phase 6. The third (q129) was a malformed reply, which the loop now sends back for repair.
+
+**Negative results (kept):**
+- **Gate A adds no accuracy on dev.** The generation prompt now has a typed way to decline (`ambiguous` / `out_of_scope` / `not_available`), and the model uses it correctly on every dev question. Gate A reaches the same decisions without an LLM call: 5 of 60 questions are stopped for free (about 6% of nominal cost), with concrete options ("Auckland Queen St or Brisbane Queen St?") instead of generic ones.
+- **The metric-margin and missing-time signals hurt**, so calibration switched them off. A close second metric is usually a related one the question doesn't mean (`net_revenue` vs `ad_spend_nzd`). And most questions without a period are fine over all time: clarifying them would cost 4 right answers to stop 1 wrong one.
+- **Gate B can't rank dev's errors.** Only 2 answered questions are wrong, and both were confident and clean (a gross-vs-net reading, and a different LTV table). AURC is 0.0438, against 0.0443 for a constant confidence: no better than chance. Its threshold (0.3) is therefore a backstop that stops nothing on dev. Raising it to 0.6 would break the over-refusal limit and still catch neither error.
+- **What that means:** the errors left are *semantic*. The SQL runs, verifies and answers a slightly different question. Neither retrieval strength nor the five checks can see that; agreement between several generations might (self-consistency is stretch S5, and stays there).
+
+**Calibration choices that limit overfitting:**
+- w = 0.5, not swept: two errors can't rank weights.
+- The threshold is set 0.1 below the highest one that costs nothing on dev.
+- Ties keep the PRD's stated rule instead of dropping it.
+- Dev has only 4 clarify and 4 abstain questions, so each rule's worth is a point estimate with almost no power. The same author wrote the rules and the questions, and the wording of all 20 clarify/abstain questions and of the red-team prompts (12 of the 20 are in test) was on screen while Gate A was written. The rules follow PRD §3.6 and were judged on dev only, but **Gate A's test numbers are not blind**, and the results write-up (Phase 8) has to say so.
+
+**Prompt changes** (so dev configs 4 and 6 were re-run; baseline 1 and the Phase 6 oracle were not): the typed decline, "identity is fixed", and documentation fully delimited.
+
+**Cost:** Phase 7 billed US$0.42 (dev, red team); project total US$1.41.

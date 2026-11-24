@@ -44,7 +44,18 @@ def render_report(
         f"| Trap avoidance | {_fmt(o['trap_avoidance'])} |",
         f"| Over-refusal (allowed questions) | {_fmt(o['over_refusal'])} |",
         f"| Leakage | {_fmt(o['leakage'])} |",
+        f"| False abstention (declined or clarified an answerable question) |"
+        f" {_fmt(o['false_abstention'])} |",
+        f"| Clarification precision | {_fmt(o['clarification_precision'])} |",
     ]
+    if rel := summary.get("reliability"):
+        sel = rel["selective_accuracy_80"]
+        lines += [
+            f"| Accuracy when it answers (coverage {rel['full_coverage']:.0%} of all questions) |"
+            f" {rel['accuracy_when_answering']:.1%} |",
+            f"| Selective accuracy at {sel['coverage']:.0%} coverage | {sel['accuracy']:.1%} |",
+            f"| AURC (lower is better) | {rel['aurc']} |",
+        ]
     for k in K_VALUES:
         lines.append(f"| Recall@{k} | {_fmt(m['recall'][str(k)])} |")
     c = m["cost"]

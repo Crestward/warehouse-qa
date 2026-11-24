@@ -130,7 +130,7 @@ def test_malicious_sql_never_reaches_the_database(tmp_path: Path) -> None:
         return json.dumps({"sql": next(attacks)})
 
     records = _run(tmp_path, attacker, max_repairs=0)
-    assert records and all(r.predicted_mode == "abstain" for r in records)
+    assert records and all(r.predicted_mode in ("abstain", "refuse") for r in records)
     assert all(r.reason_code == "static_check" and not r.rows for r in records)
 
 

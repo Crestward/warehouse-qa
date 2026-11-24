@@ -1,0 +1,14 @@
+# Gate A/B, chosen by `eval calibrate` on dev (docs/gates.md).
+tuned_on: 20261124T114827Z-config4-observe-dev
+params:
+  tau_relevance: 0.35
+  tau_metric_margin: 0.0
+  clarify_missing_time: false
+  clarify_vague: true
+  clarify_entity: true
+  abstain_intent: true
+  assume_metrics: true
+  assume_models: false
+  retrieval_signal: margin_10
+  w_retrieval: 0.5
+  tau_confidence: 0.3

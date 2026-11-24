@@ -37,6 +37,7 @@ class Retrieved:
     warnings: list[str] = field(default_factory=list)  # answer-level, e.g. stale sources
     summaries: dict[str, dict[str, Any]] = field(default_factory=dict)  # id -> NodeSummary
     understanding: Understanding | None = None
+    signals: dict[str, float] = field(default_factory=dict)  # for Gate B (pipeline/gates.py)
 
     @property
     def labelled(self) -> list[str]:
@@ -54,6 +55,18 @@ def _flag_labels(summary: dict[str, Any]) -> list[str]:
     if summary.get("trap_kind"):
         labels.append(f"trap: {summary['trap_kind']}")
     return labels
+
+
+def _signals(pool: Pool, score: dict[str, float], ranked: list[str]) -> dict[str, float]:
+    """How strongly, and how decisively, retrieval matched the question."""
+    top = [score[i] for i in ranked[:10]] or [0.0]
+    tables = [score[i] for i in ranked if i.startswith("model.")] or [0.0]
+    return {
+        "ce_top": round(max(pool.ce.values(), default=0.0), 4),
+        "top_score": round(top[0], 4),
+        "margin_10": round(top[0] - top[-1], 4),
+        "table_margin": round(tables[0] - tables[1], 4) if len(tables) > 1 else 1.0,
+    }
 
 
 class VectorRetriever:
@@ -335,4 +348,5 @@ class HybridRetriever:
             warnings=[f"stale: {m}: {detail}" for m, detail in sorted(stale.items())],
             summaries={i: pool.summaries[i] for i in ranked},
             understanding=pool.understanding,
+            signals=_signals(pool, score, ranked),
         )
