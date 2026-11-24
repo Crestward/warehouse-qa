@@ -62,14 +62,16 @@ def show(answer: Answer, live: bool) -> None:
         for option in options:
             st.markdown(option)
         return
-    confidence = f" · confidence {r.confidence:.2f}" if r.confidence is not None else ""
-    banner(f"**{answer.outcome}**{confidence}")
-    for a in r.assumptions:
-        st.markdown(f"**Read as:** {a}")
+    banner(f"**{answer.outcome}**")
     for w in r.warnings:
         st.warning(w, icon="⚠️")
     if r.rows:
         st.dataframe([dict(zip(r.columns, row, strict=True)) for row in r.rows], hide_index=True)
+    else:
+        st.markdown("*No rows to show.*")
+    for line in r.answer_text.split("\n"):
+        if line.startswith("Assumption: "):
+            st.markdown(f"**Read as:** {line.removeprefix('Assumption: ')}")
     for line in r.answer_text.split("\n"):
         if line.startswith(("Groups of", "Your role", "Documented caveat")):
             st.caption(line)
@@ -79,6 +81,8 @@ def show(answer: Answer, live: bool) -> None:
     lineage.graphviz_chart(dot(answer))
     when = "" if live else " when it was recorded"
     checks.markdown(
+        f"- Confidence: {'n/a' if r.confidence is None else f'{r.confidence:.2f}'}"
+        " (retrieval margin and verification; a backstop, not a probability)\n"
         f"- Verification: {'; '.join(r.checks)}\n- Repairs: {r.repairs}\n"
         f"- Context given to the model: {r.context_tokens:,} tokens"
         f" from {len(r.retrieved_nodes)} retrieved nodes\n"
@@ -88,7 +92,7 @@ def show(answer: Answer, live: bool) -> None:
 
 def main() -> None:
     st.set_page_config(page_title="warehouse-qa", page_icon="🔎", layout="wide")
-    st.title("Ask the Kiwi Retail warehouse")
+    st.header("Ask the Kiwi Retail warehouse")
     st.caption(
         "Every query runs as the selected role's own database login. The database decides what"
         " comes back; the model only writes SQL."

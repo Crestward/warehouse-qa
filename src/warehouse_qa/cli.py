@@ -373,6 +373,8 @@ def main(argv: list[str] | None = None) -> int:
     ru.add_argument("--split", default="dev", choices=["dev", "test", "dev_mini", "ci"])
     ru.add_argument("--skip-preflight", action="store_true")
     ru.add_argument("--gates", choices=["off", "observe", "enforce"], help="override the config")
+    rl = ev.add_parser("results", help="tables and plot in docs/results.md, from saved runs")
+    rl.add_argument("--split", default="test", choices=["dev", "test"])
     gt = ev.add_parser("gate", help="PR gate: a ci-split run against the committed baseline")
     gt.add_argument("run_dir", type=Path)
     gt.add_argument("--write-baseline", action="store_true", help="from a full dev run")
@@ -404,6 +406,12 @@ def main(argv: list[str] | None = None) -> int:
         return ask(args.role, args.question)
     if args.group == "demo-record":
         return demo_record()
+    if args.command == "results":
+        from warehouse_qa.eval.results import write as write_results
+
+        write_results(args.split)
+        print("wrote docs/results.md and docs/img/risk_coverage.svg")
+        return 0
     if args.command == "gate":
         return gate(args.run_dir, args.write_baseline)
 

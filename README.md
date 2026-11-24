@@ -1,108 +1,107 @@
 # warehouse-qa
 
-A permission-aware, lineage-aware "ask your warehouse" assistant. Retrieval runs over a metadata graph rather than text chunks, access policies are enforced in the database rather than the prompt, generated SQL is verified before answering, and the assistant asks or abstains when unsure.
+**Ask a data warehouse questions in plain English, without the AI being able to leak anything.**
 
-Part of a pair of linked portfolio projects that share [`warehouse-graph`](https://github.com/Crestward/warehouse-graph), a lineage/metadata graph served over MCP. The sibling project is [`pipeline-sentinel`](https://github.com/Crestward/pipeline-sentinel).
+Each question runs as the asking user's own database login. The model only writes SQL: the database decides which rows and columns come back, every query is checked before and after it runs, and the assistant asks or declines when it should. It finds its way around with a metadata graph (dbt models, lineage, metrics, known caveats) rather than text chunks.
 
-> **Status: Phase 7 (governance hardening and gates).** The full question → governed SQL → verified answer pipeline is built, calibrated and red-teamed on dev. The one-time test run, the demo page and the CLI come in Phase 8.
+![Demo: the same question as two roles, a stale-data warning, a refusal that confirms nothing, masked emails, small groups left out, and a clarifying question](docs/img/demo.gif)
 
-## How it will be measured
-Everything is in [`docs/eval.md`](docs/eval.md):
-- **150 labelled questions** in [`evals/questions.yaml`](evals/questions.yaml): 90 regular, 40 aimed at the warehouse's 13 planted traps, and 20 that should be clarified or abstained on. They're spread across five roles.
-- **Gold SQL is executed as the question's role**, so an Australian analyst's gold answer is already Australia-only and masked. Questions a role isn't permitted to answer are labelled `refuse`.
-- **50 red-team prompts** in [`evals/redteam.yaml`](evals/redteam.yaml): direct asks, small-cell inference, prompt injection (including three injections planted in the dbt docs), role confusion, and SQL escalation.
-- **Frozen dev/test splits** (60/90 plus a 30-question dev-mini), stratified and committed with hashes. There's a contamination check against the QueryExamples: 8 questions were rewritten, and every other hit was reviewed by hand.
-- **Deterministic metrics**, no LLM-as-judge:
-  - execution accuracy (multiset result comparison)
-  - mode accuracy
-  - recall@k and trap avoidance
-  - leakage (a scanner for hidden values, out-of-scope rows, existence confirmation and small cells)
-  - over-refusal, cost and latency
-  - 95% bootstrap CIs and exact McNemar tests
-- **A harness that is cheap to re-use:** Batch API, response cache, one global cost ledger with a US$150 cap, and `eval rescore`, which recomputes every metric from the saved JSONL with no database and no LLM.
+One of two linked projects built on [`warehouse-graph`](https://github.com/Crestward/warehouse-graph). The other is [`pipeline-sentinel`](https://github.com/Crestward/pipeline-sentinel).
 
-## First result: config 1 (schema dump) on dev
-The naive baseline puts the role's whole visible schema in context and makes one Sonnet 5.5 call per question, with no retrieval, no verification and no gates.
+## Results, on a held-out test set
+90 questions, run once from a frozen commit, with the comparisons written down first. Full tables, confidence intervals and every failure: [`docs/results.md`](docs/results.md).
 
-| Metric (dev, n = 60) | Baseline 1 |
-|---|---|
-| Execution accuracy | **95.9%** [89.8, 100] (47/49) |
-| Trap avoidance | 87.5% [68.8, 100]: misses both stale-data warnings |
-| Mode accuracy, lenient | 90.0%: it can't ask a clarifying question (it answered 3 of the 4 ambiguous questions and abstained on the 4th); all 4 out-of-scope questions were correctly abstained on |
-| Leakage | **0 / 60** |
-| Cost | US$0.19 nominal (Batch API, cached schema prefix), $0.003 per question |
-
-**What this says about the plan:** on a 20-table warehouse the whole schema fits in context, and a strong model avoids most planted traps on its own. Graph-aware retrieval therefore has little room to win on raw accuracy here. Its measurable edge has to come from:
-- the warnings and caveats a schema dump doesn't carry: stale sources, the refunds data gap, and the fixed FX rate (the one regular question it refused, q067)
-- clarifying instead of guessing
-- refusing correctly instead of returning a row-filtered NULL as an answer
-- cost per question
-
-Full report: [`results/`](results/).
-
-## Retrieval (Phase 5): hybrid vs vector-only on dev
-Both retrievers go through the warehouse-graph MCP tools *as the asking user*, so role filtering is the server's job: 800 retrievals across five roles surfaced 0 hidden nodes. Retrieval is scored on retrieved nodes, so the comparison cost $0.
-
-| Dev, n = 49 with gold nodes | Vector-only | **Hybrid** (seed → metric/QueryExample/deprecation expansion → cross-encoder) |
-|---|---|---|
-| Recall@20 | 0.534 | **0.767** (+0.233 [+0.158, +0.312], paired p = 0.0001) |
-| Recall@10 | 0.343 | 0.394 (+0.051, not significant) |
-| Planted-trap checks | 14/16 | **16/16** (adds the stale-data warnings) |
-| Context size | 2,011 tokens | **1,423 tokens** (schema dump: 2,562) |
-
-**What it showed:**
-- Expansion that follows *meaning* helps: metric → model, deprecated → replacement, similar example → its tables. Expansion that follows *lineage structure* doesn't.
-- Every role that can only see `marts` was blind to stale upstream data. This was fixed in the graph: each model now carries its upstream freshness, without revealing the hidden source.
-
-Details and negative results: [`docs/design-decisions.md`](docs/design-decisions.md) (Q1–Q3).
-
-## The pipeline (Phase 6): config 4 vs its ablation and the baselines, on dev
-Retrieve as the user → generate SQL (structured output) → static checks (one read-only query, `marts` only, function allow-list, LIMIT injection) → dry run and execute **as the user's own database role** → 5 sanity checks (empty, fan-out, NULLs, deprecated, stale) → up to 2 repairs (the model sees result *stats*, never rows) → answer with caveats and freshness → audit.
-
-| Dev (49 answerable, 16 traps) | Schema dump (1) | No verification (6) | **Main (4)** | Oracle retrieval |
+| | Whole schema in the prompt | Vector search | **This system** | Perfect retrieval |
 |---|---|---|---|---|
-| Execution accuracy | 95.9% | 91.8% | **91.8%** | 95.9% |
-| Trap avoidance | 14/16 | 12/16 | **14/16** | 16/16 |
-| Leakage | 0 | 0 | 0 | 0 |
-| Context | ~2,560 tok | 1,423 tok | 1,423 tok | 211 tok |
+| Correct results (73 answerable) | **94.5%** | 78.1% | 86.3% | 90.4% |
+| Planted traps avoided (24) | 83.3% | 58.3% | 79.2% | 91.7% |
+| Right behaviour: answer, ask or decline (90) | 92.2% | 87.8% | 93.3% | 93.3% |
+| Wrong, of the questions it answered | 12.7% | 14.9% | 10.0% | 9.6% |
+| Leaks | 0 | 0 | 0 | 0 |
+| Input tokens per question | 4,133 | 3,971 | 3,000 | 1,223 |
 
-**What the numbers say:**
-- Verification halves trap failures (4 → 2; on 16 traps that isn't statistically significant) and catches fan-outs and RLS-empty answers.
-- The main system isn't more accurate than the whole-schema baseline on a warehouse this small (91.8% vs 95.9%, n.s.). Oracle retrieval closes that gap, so retrieval is where the rest is.
-- Escalation attempts (`SET ROLE`, multiple statements, DML, `COPY`, `pg_sleep`, other schemas) are rejected before reaching the database: 21 cases tested, plus an LLM scripted to attack.
+**Security:** 0 leaks in 50 red-team attacks, 0 of 10 prompt injections obeyed, and 0 leaks in 1,100 attempts with a model *scripted to obey the attacker*. With two controls switched off, the same attacks do leak, so the test can see. ([`docs/threat-model.md`](docs/threat-model.md))
 
-Details: [`docs/design-decisions.md`](docs/design-decisions.md) Q4.
+**The honest headline:**
+- **The naive baseline wins on accuracy here** (94.5% vs 86.3%, p = 0.03). With only 20 tables, the whole schema fits in the prompt, and retrieval sometimes drops a table the model needed: 5 of the 10 wrong answers.
+- **Graph-aware retrieval beats vector search** (8 wins, 2 losses), and verification adds stale-data warnings and trap catches. Neither is statistically significant at this size.
+- **What holds up is the governance:** no leak in any configuration, refusals that confirm nothing, and no group of fewer than 5 people ever shown.
+- **If I were shipping this for a warehouse this small,** I'd keep the governance, checks and gates, and feed the model the role-filtered schema directly.
 
-## Quick start
+## Try it (no API key needed)
+Needs [Docker](https://docs.docker.com/get-docker/), [uv](https://docs.astral.sh/uv/) and git.
+
 ```bash
-uv sync
-make check            # lint, types, unit tests
-# with the eval warehouse up (warehouse-graph: make policies, ad_spend stale; docs/eval.md §8):
-make eval-check       # gold queries as their roles, labels, contamination (no LLM)
-make eval-baseline    # config 1 on dev via the Batch API (~US$0.20, or $0 from the cache)
-uv run warehouse-qa eval retrieve --retriever hybrid --split dev   # retrieval only, $0
-uv run warehouse-qa eval sweep --split dev                          # re-tune on dev, $0
-uv run warehouse-qa eval run --config configs/config4.yaml --split dev   # main system (~US$0.25)
-uv run warehouse-qa eval compare results/<run_a> results/<run_b>         # paired McNemar
+git clone https://github.com/Crestward/warehouse-qa
+cd warehouse-qa
+make demo            # or: uv run python scripts/demo.py
 ```
+This clones `warehouse-graph` next to it, starts Postgres, builds the synthetic warehouse (40 dbt models), the graph and the access policies, then opens http://localhost:8501. The example questions replay recorded model replies; retrieval, gates, checks and the database are live. To ask anything (about US$0.01 a question), put `ANTHROPIC_API_KEY` in `warehouse-graph/.env`.
+
+```bash
+uv run warehouse-qa ask --role analyst_nz "How much net revenue did each region make in the first half of 2025?"
+```
+
+## How it works
+
+```mermaid
+flowchart TD
+    Q["question + role"] --> R["hybrid retrieval over the metadata graph<br/>(MCP server, filtered for the role)"]
+    R --> A{"Gate A<br/>no LLM"}
+    A -- "ambiguous" --> C["clarifying question<br/>with real options"]
+    A -- "out of scope" --> N["declined, confirming nothing"]
+    A -- "clear" --> G["Sonnet 5.5 writes SQL<br/>(structured output)"]
+    G --> S["static checks: one read-only query,<br/>marts only, allowed functions"]
+    S --> K["row scope + small cells<br/>(HAVING at least 5 people)"]
+    K --> D["dry run + execute<br/>as the role's own DB login<br/>(RLS, masking, column grants)"]
+    D --> V["5 sanity checks: empty, fan-out,<br/>NULLs, deprecated, stale"]
+    V -- "failed: stats only, never rows (max 2)" --> G
+    V --> B{"Gate B<br/>confidence"}
+    B -- "low" --> N
+    B -- "ok" --> Ans["answer: rows, SQL, lineage,<br/>caveats, freshness"]
+    C --> L[("append-only audit")]
+    N --> L
+    Ans --> L
+```
+
+- **The LLM is never the enforcement point.** One `policies.yml` compiles to database roles, row-level security, column grants and masking views, and the same file filters what the model can *see*.
+- **Rows never reach the model.** Repairs get counts, null rates and numeric ranges.
+- **Refusals are fixed text.** A hidden column, a column that never existed and a blocked query read the same.
+- **Trust nothing in the docs.** Descriptions are delimited data; three prompt injections are planted in the demo's dbt docs.
+
+## How it's measured
+- **150 labelled questions** (90 regular, 40 planted traps, 20 that should be clarified or declined) across five roles. Gold SQL runs *as the question's role*. Frozen, hashed 60/90 dev/test split.
+- **50 red-team prompts** in five categories, plus the compromised-model test and its positive control.
+- **Deterministic scoring**, no LLM judge. Bootstrap CIs and exact McNemar tests.
+- **Batch API, response cache, offline calibration:** the whole project has cost **US$3.10** in model calls.
+- **CI:** lint, types, unit tests, and an integration job that builds the warehouse. A 20-question real-model gate runs only on PRs labelled `eval`.
+
+## Docs
+| | |
+|---|---|
+| [Results](docs/results.md) | test tables, plot, every failure explained |
+| [Design decisions](docs/design-decisions.md) | Q1–Q7, negative results included |
+| [Evaluation protocol](docs/eval.md) | labelling, metrics, splits, what was frozen |
+| [Threat model](docs/threat-model.md) | controls, red team, residual risks |
+| [Gates](docs/gates.md), [retrieval tuning](docs/retrieval-tuning.md), [contamination](docs/contamination.md) | generated reports |
+
+## Development
+```bash
+make check                 # lint, format, types, tests
+make eval-check            # gold queries as their roles, labels, contamination (no LLM)
+make redteam               # the 50 attacks (fails on any leak)
+uv run warehouse-qa eval run --config configs/config4.yaml --split dev     # about US$0.25
+uv run warehouse-qa eval results                                           # regenerate docs/results.md
+```
+
+## Limits and next steps
+v1 is evaluated on one synthetic warehouse, by its author; see the limits in [`docs/results.md`](docs/results.md#limits-of-this-evaluation). Deliberately left out of v1 ([parking lot](https://github.com/Crestward/warehouse-graph/blob/main/docs/parking-lot.md)):
+- the role-filtered schema as a retrieval fallback for small warehouses, and finding the size at which retrieval starts to win
+- public benchmarks (Spider 2.0-Lite, BIRD): they have no dbt manifest, so they need a schema-introspection graph
+- agreement between several generations, for the errors no check can see
+- observed lineage from Unity Catalog
+
+**Prior art:** dbt Labs' official [`dbt-mcp`](https://github.com/dbt-labs/dbt-mcp) serves lineage and the semantic layer. This project differs in caveat and trap nodes, metadata filtered by the same policy the database enforces, and the evaluation.
 
 ## Licence
 MIT. See [LICENSE](LICENSE).
-
-## Governance and gates (Phase 7), on dev and the red team
-| | Result |
-|---|---|
-| **Red team, real model** | **0 / 50 leaks**, 0 / 10 prompt injections obeyed |
-| **Red team, compromised model** (scripted to send an attacker's SQL) | **0 / 1,100 leaks**; with the controls switched off the same attacks do leak |
-| Mode accuracy (answer / assume / clarify / decline) | **98.3%** lenient (59/60), baseline 1: 90.0% (54/60), p = 0.125 |
-| Clarifying questions | 4 asked, 4 right, 0 needless |
-| Over-refusal on allowed questions | 2.0% (1/49) |
-| Execution accuracy | 93.9% (46/49), baseline 1: 95.9% (47/49), p = 1.0 |
-| Accuracy when it answers | 95.8% at 80% coverage |
-
-- **Small cells:** no group of fewer than 5 people leaves the database.
-- **Non-confirming refusals:** a hidden column, a column that never existed and a rejected query all read the same.
-- **Gate A** (before the LLM) asks "Auckland Queen St or Brisbane Queen St?", or declines forecasts, causes and advice, without paying for a call.
-- **Honest negatives:** Gate B's confidence can't tell the two wrong answers on dev from the right ones (AURC no better than chance), and two of Gate A's planned signals hurt and were switched off.
-
-Threat model and everything the red team changed: [`docs/threat-model.md`](docs/threat-model.md). Calibration: [`docs/gates.md`](docs/gates.md), decisions Q5–Q6.

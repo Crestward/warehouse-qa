@@ -1,6 +1,8 @@
-.PHONY: help test lint typecheck check eval-check eval-baseline redteam
+.PHONY: help test lint typecheck check eval-check eval-baseline redteam demo page
 
 help:
+	@echo "make demo           build the demo warehouse, then open the page (Docker; no API key needed)"
+	@echo "make page           the page alone, on a warehouse built earlier"
 	@echo "make test           run unit tests"
 	@echo "make check          lint + format check + type-check + tests (what CI runs)"
 	@echo "make eval-check     gold queries as their roles, labels, contamination (no LLM)"
@@ -30,3 +32,9 @@ eval-baseline:
 
 redteam:
 	uv run warehouse-qa eval redteam --config configs/config4.yaml
+
+demo:
+	uv run python scripts/demo.py
+
+page:
+	uv run python scripts/demo.py --page-only

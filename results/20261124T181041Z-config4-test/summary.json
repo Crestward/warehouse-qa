@@ -1,0 +1,1132 @@
+{
+  "run_id": "20261124T181041Z-config4-test",
+  "config": {
+    "audit": true,
+    "batch": true,
+    "context_budget": 3000,
+    "effort": "low",
+    "gates": "enforce",
+    "git_commit": "34ece19070acddcf2764935a91ccda723a438715",
+    "graph_manifest": "0f8a7b9993a6c8e388a93f3ea3a3f99072735ce9bde93ee708e2743d756f3ca2",
+    "max_repairs": 2,
+    "max_tokens": 1500,
+    "model": "claude-sonnet-5-5",
+    "name": "config4",
+    "retriever": "hybrid",
+    "row_limit": 1000,
+    "split": "test",
+    "system": "pipeline",
+    "timeout_s": 30,
+    "verification": true
+  },
+  "run": {
+    "spent_usd": 0.34009
+  },
+  "gold_errors": [],
+  "metrics": {
+    "overall": {
+      "n": 90,
+      "execution_accuracy": {
+        "n": 73,
+        "rate": 0.863,
+        "ci95": [
+          0.7808,
+          0.9315
+        ]
+      },
+      "mode_accuracy": {
+        "n": 90,
+        "rate": 0.8889,
+        "ci95": [
+          0.8222,
+          0.9444
+        ]
+      },
+      "mode_accuracy_lenient": {
+        "n": 90,
+        "rate": 0.9333,
+        "ci95": [
+          0.8778,
+          0.9778
+        ]
+      },
+      "trap_avoidance": {
+        "n": 24,
+        "rate": 0.7917,
+        "ci95": [
+          0.625,
+          0.9583
+        ]
+      },
+      "over_refusal": {
+        "n": 73,
+        "rate": 0.0411,
+        "ci95": [
+          0.0,
+          0.0959
+        ]
+      },
+      "false_abstention": {
+        "n": 73,
+        "rate": 0.0411,
+        "ci95": [
+          0.0,
+          0.0959
+        ]
+      },
+      "clarification_precision": {
+        "n": 5,
+        "rate": 0.8,
+        "ci95": [
+          0.4,
+          1.0
+        ]
+      },
+      "leakage": {
+        "n": 90,
+        "rate": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      }
+    },
+    "recall": {
+      "5": {
+        "n": 73,
+        "rate": 0.173,
+        "ci95": [
+          0.125,
+          0.2298
+        ]
+      },
+      "10": {
+        "n": 73,
+        "rate": 0.3153,
+        "ci95": [
+          0.2506,
+          0.3828
+        ]
+      },
+      "20": {
+        "n": 73,
+        "rate": 0.6968,
+        "ci95": [
+          0.6228,
+          0.7713
+        ]
+      }
+    },
+    "precision": {
+      "5": {
+        "n": 73,
+        "rate": 0.1534,
+        "ci95": [
+          0.1123,
+          0.2
+        ]
+      },
+      "10": {
+        "n": 73,
+        "rate": 0.1356,
+        "ci95": [
+          0.1082,
+          0.1658
+        ]
+      },
+      "20": {
+        "n": 73,
+        "rate": 0.1514,
+        "ci95": [
+          0.1356,
+          0.1685
+        ]
+      }
+    },
+    "by_category": {
+      "regular": {
+        "n": 54,
+        "execution_accuracy": {
+          "n": 49,
+          "rate": 0.898,
+          "ci95": [
+            0.8163,
+            0.9796
+          ]
+        },
+        "mode_accuracy": {
+          "n": 54,
+          "rate": 0.9444,
+          "ci95": [
+            0.8704,
+            1.0
+          ]
+        },
+        "mode_accuracy_lenient": {
+          "n": 54,
+          "rate": 0.963,
+          "ci95": [
+            0.9074,
+            1.0
+          ]
+        },
+        "trap_avoidance": {
+          "n": 0,
+          "rate": null,
+          "ci95": [
+            null,
+            null
+          ]
+        },
+        "over_refusal": {
+          "n": 49,
+          "rate": 0.0204,
+          "ci95": [
+            0.0,
+            0.0612
+          ]
+        },
+        "false_abstention": {
+          "n": 49,
+          "rate": 0.0204,
+          "ci95": [
+            0.0,
+            0.0612
+          ]
+        },
+        "clarification_precision": {
+          "n": 1,
+          "rate": 0.0,
+          "ci95": [
+            0.0,
+            0.0
+          ]
+        },
+        "leakage": {
+          "n": 54,
+          "rate": 0.0,
+          "ci95": [
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "trap": {
+        "n": 24,
+        "execution_accuracy": {
+          "n": 24,
+          "rate": 0.7917,
+          "ci95": [
+            0.625,
+            0.9583
+          ]
+        },
+        "mode_accuracy": {
+          "n": 24,
+          "rate": 0.7917,
+          "ci95": [
+            0.625,
+            0.9583
+          ]
+        },
+        "mode_accuracy_lenient": {
+          "n": 24,
+          "rate": 0.9167,
+          "ci95": [
+            0.7917,
+            1.0
+          ]
+        },
+        "trap_avoidance": {
+          "n": 24,
+          "rate": 0.7917,
+          "ci95": [
+            0.625,
+            0.9583
+          ]
+        },
+        "over_refusal": {
+          "n": 24,
+          "rate": 0.0833,
+          "ci95": [
+            0.0,
+            0.2083
+          ]
+        },
+        "false_abstention": {
+          "n": 24,
+          "rate": 0.0833,
+          "ci95": [
+            0.0,
+            0.2083
+          ]
+        },
+        "clarification_precision": {
+          "n": 0,
+          "rate": null,
+          "ci95": [
+            null,
+            null
+          ]
+        },
+        "leakage": {
+          "n": 24,
+          "rate": 0.0,
+          "ci95": [
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "clarify_abstain": {
+        "n": 12,
+        "execution_accuracy": {
+          "n": 0,
+          "rate": null,
+          "ci95": [
+            null,
+            null
+          ]
+        },
+        "mode_accuracy": {
+          "n": 12,
+          "rate": 0.8333,
+          "ci95": [
+            0.5833,
+            1.0
+          ]
+        },
+        "mode_accuracy_lenient": {
+          "n": 12,
+          "rate": 0.8333,
+          "ci95": [
+            0.5833,
+            1.0
+          ]
+        },
+        "trap_avoidance": {
+          "n": 0,
+          "rate": null,
+          "ci95": [
+            null,
+            null
+          ]
+        },
+        "over_refusal": {
+          "n": 0,
+          "rate": null,
+          "ci95": [
+            null,
+            null
+          ]
+        },
+        "false_abstention": {
+          "n": 0,
+          "rate": null,
+          "ci95": [
+            null,
+            null
+          ]
+        },
+        "clarification_precision": {
+          "n": 4,
+          "rate": 1.0,
+          "ci95": [
+            1.0,
+            1.0
+          ]
+        },
+        "leakage": {
+          "n": 12,
+          "rate": 0.0,
+          "ci95": [
+            0.0,
+            0.0
+          ]
+        }
+      }
+    },
+    "by_role": {
+      "admin": {
+        "n": 22,
+        "execution_accuracy": {
+          "n": 18,
+          "rate": 0.8333,
+          "ci95": [
+            0.6653,
+            1.0
+          ]
+        },
+        "mode_accuracy": {
+          "n": 22,
+          "rate": 0.9091,
+          "ci95": [
+            0.7727,
+            1.0
+          ]
+        },
+        "mode_accuracy_lenient": {
+          "n": 22,
+          "rate": 0.9091,
+          "ci95": [
+            0.7727,
+            1.0
+          ]
+        },
+        "trap_avoidance": {
+          "n": 6,
+          "rate": 0.6667,
+          "ci95": [
+            0.3333,
+            1.0
+          ]
+        },
+        "over_refusal": {
+          "n": 18,
+          "rate": 0.1111,
+          "ci95": [
+            0.0,
+            0.2778
+          ]
+        },
+        "false_abstention": {
+          "n": 18,
+          "rate": 0.1111,
+          "ci95": [
+            0.0,
+            0.2778
+          ]
+        },
+        "clarification_precision": {
+          "n": 2,
+          "rate": 1.0,
+          "ci95": [
+            1.0,
+            1.0
+          ]
+        },
+        "leakage": {
+          "n": 22,
+          "rate": 0.0,
+          "ci95": [
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "analyst_au": {
+        "n": 11,
+        "execution_accuracy": {
+          "n": 9,
+          "rate": 0.8889,
+          "ci95": [
+            0.6667,
+            1.0
+          ]
+        },
+        "mode_accuracy": {
+          "n": 11,
+          "rate": 0.9091,
+          "ci95": [
+            0.7273,
+            1.0
+          ]
+        },
+        "mode_accuracy_lenient": {
+          "n": 11,
+          "rate": 0.9091,
+          "ci95": [
+            0.7273,
+            1.0
+          ]
+        },
+        "trap_avoidance": {
+          "n": 3,
+          "rate": 1.0,
+          "ci95": [
+            1.0,
+            1.0
+          ]
+        },
+        "over_refusal": {
+          "n": 9,
+          "rate": 0.0,
+          "ci95": [
+            0.0,
+            0.0
+          ]
+        },
+        "false_abstention": {
+          "n": 9,
+          "rate": 0.0,
+          "ci95": [
+            0.0,
+            0.0
+          ]
+        },
+        "clarification_precision": {
+          "n": 0,
+          "rate": null,
+          "ci95": [
+            null,
+            null
+          ]
+        },
+        "leakage": {
+          "n": 11,
+          "rate": 0.0,
+          "ci95": [
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "analyst_nz": {
+        "n": 15,
+        "execution_accuracy": {
+          "n": 11,
+          "rate": 1.0,
+          "ci95": [
+            1.0,
+            1.0
+          ]
+        },
+        "mode_accuracy": {
+          "n": 15,
+          "rate": 0.8667,
+          "ci95": [
+            0.6667,
+            1.0
+          ]
+        },
+        "mode_accuracy_lenient": {
+          "n": 15,
+          "rate": 0.9333,
+          "ci95": [
+            0.8,
+            1.0
+          ]
+        },
+        "trap_avoidance": {
+          "n": 2,
+          "rate": 1.0,
+          "ci95": [
+            1.0,
+            1.0
+          ]
+        },
+        "over_refusal": {
+          "n": 11,
+          "rate": 0.0,
+          "ci95": [
+            0.0,
+            0.0
+          ]
+        },
+        "false_abstention": {
+          "n": 11,
+          "rate": 0.0,
+          "ci95": [
+            0.0,
+            0.0
+          ]
+        },
+        "clarification_precision": {
+          "n": 1,
+          "rate": 1.0,
+          "ci95": [
+            1.0,
+            1.0
+          ]
+        },
+        "leakage": {
+          "n": 15,
+          "rate": 0.0,
+          "ci95": [
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "finance": {
+        "n": 24,
+        "execution_accuracy": {
+          "n": 22,
+          "rate": 0.7727,
+          "ci95": [
+            0.5909,
+            0.9545
+          ]
+        },
+        "mode_accuracy": {
+          "n": 24,
+          "rate": 0.875,
+          "ci95": [
+            0.75,
+            1.0
+          ]
+        },
+        "mode_accuracy_lenient": {
+          "n": 24,
+          "rate": 0.9583,
+          "ci95": [
+            0.875,
+            1.0
+          ]
+        },
+        "trap_avoidance": {
+          "n": 9,
+          "rate": 0.7778,
+          "ci95": [
+            0.4444,
+            1.0
+          ]
+        },
+        "over_refusal": {
+          "n": 22,
+          "rate": 0.0455,
+          "ci95": [
+            0.0,
+            0.1364
+          ]
+        },
+        "false_abstention": {
+          "n": 22,
+          "rate": 0.0455,
+          "ci95": [
+            0.0,
+            0.1364
+          ]
+        },
+        "clarification_precision": {
+          "n": 1,
+          "rate": 1.0,
+          "ci95": [
+            1.0,
+            1.0
+          ]
+        },
+        "leakage": {
+          "n": 24,
+          "rate": 0.0,
+          "ci95": [
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "marketing": {
+        "n": 18,
+        "execution_accuracy": {
+          "n": 13,
+          "rate": 0.9231,
+          "ci95": [
+            0.7692,
+            1.0
+          ]
+        },
+        "mode_accuracy": {
+          "n": 18,
+          "rate": 0.8889,
+          "ci95": [
+            0.7222,
+            1.0
+          ]
+        },
+        "mode_accuracy_lenient": {
+          "n": 18,
+          "rate": 0.9444,
+          "ci95": [
+            0.8333,
+            1.0
+          ]
+        },
+        "trap_avoidance": {
+          "n": 4,
+          "rate": 0.75,
+          "ci95": [
+            0.25,
+            1.0
+          ]
+        },
+        "over_refusal": {
+          "n": 13,
+          "rate": 0.0,
+          "ci95": [
+            0.0,
+            0.0
+          ]
+        },
+        "false_abstention": {
+          "n": 13,
+          "rate": 0.0,
+          "ci95": [
+            0.0,
+            0.0
+          ]
+        },
+        "clarification_precision": {
+          "n": 1,
+          "rate": 0.0,
+          "ci95": [
+            0.0,
+            0.0
+          ]
+        },
+        "leakage": {
+          "n": 18,
+          "rate": 0.0,
+          "ci95": [
+            0.0,
+            0.0
+          ]
+        }
+      }
+    },
+    "by_trap_type": {
+      "ambiguous_dimension": {
+        "n": 1,
+        "rate": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "competing_metric": {
+        "n": 5,
+        "rate": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "currency": {
+        "n": 1,
+        "rate": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "data_gap": {
+        "n": 2,
+        "rate": 0.5,
+        "ci95": [
+          0.0,
+          1.0
+        ]
+      },
+      "deprecated_column": {
+        "n": 2,
+        "rate": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "deprecated_model": {
+        "n": 2,
+        "rate": 0.5,
+        "ci95": [
+          0.0,
+          1.0
+        ]
+      },
+      "fanout_join": {
+        "n": 5,
+        "rate": 0.6,
+        "ci95": [
+          0.2,
+          1.0
+        ]
+      },
+      "misleading_name": {
+        "n": 3,
+        "rate": 0.6667,
+        "ci95": [
+          0.0,
+          1.0
+        ]
+      },
+      "moving_now": {
+        "n": 1,
+        "rate": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "stale_source": {
+        "n": 2,
+        "rate": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      }
+    },
+    "cost": {
+      "usd": 0.340065,
+      "usd_per_question": 0.003779,
+      "tokens": 295277,
+      "latency_p50_s": 4.459,
+      "latency_p95_s": 4.48
+    }
+  },
+  "reliability": {
+    "points": [
+      {
+        "coverage": 0.0111,
+        "risk": 0.0,
+        "threshold": 0.9786
+      },
+      {
+        "coverage": 0.0222,
+        "risk": 0.0,
+        "threshold": 0.9677
+      },
+      {
+        "coverage": 0.0333,
+        "risk": 0.0,
+        "threshold": 0.9676
+      },
+      {
+        "coverage": 0.0444,
+        "risk": 0.0,
+        "threshold": 0.9642
+      },
+      {
+        "coverage": 0.0556,
+        "risk": 0.0,
+        "threshold": 0.9579
+      },
+      {
+        "coverage": 0.0667,
+        "risk": 0.0,
+        "threshold": 0.9556
+      },
+      {
+        "coverage": 0.0778,
+        "risk": 0.0,
+        "threshold": 0.9531
+      },
+      {
+        "coverage": 0.0889,
+        "risk": 0.125,
+        "threshold": 0.9529
+      },
+      {
+        "coverage": 0.1,
+        "risk": 0.1111,
+        "threshold": 0.9523
+      },
+      {
+        "coverage": 0.1111,
+        "risk": 0.1,
+        "threshold": 0.9401
+      },
+      {
+        "coverage": 0.1222,
+        "risk": 0.1818,
+        "threshold": 0.9366
+      },
+      {
+        "coverage": 0.1333,
+        "risk": 0.1667,
+        "threshold": 0.9344
+      },
+      {
+        "coverage": 0.1444,
+        "risk": 0.1538,
+        "threshold": 0.9302
+      },
+      {
+        "coverage": 0.1556,
+        "risk": 0.1429,
+        "threshold": 0.9274
+      },
+      {
+        "coverage": 0.1667,
+        "risk": 0.1333,
+        "threshold": 0.9216
+      },
+      {
+        "coverage": 0.1778,
+        "risk": 0.125,
+        "threshold": 0.9123
+      },
+      {
+        "coverage": 0.1889,
+        "risk": 0.1176,
+        "threshold": 0.9075
+      },
+      {
+        "coverage": 0.2,
+        "risk": 0.1111,
+        "threshold": 0.9051
+      },
+      {
+        "coverage": 0.2111,
+        "risk": 0.1053,
+        "threshold": 0.8973
+      },
+      {
+        "coverage": 0.2222,
+        "risk": 0.1,
+        "threshold": 0.8942
+      },
+      {
+        "coverage": 0.2333,
+        "risk": 0.0952,
+        "threshold": 0.8911
+      },
+      {
+        "coverage": 0.2444,
+        "risk": 0.0909,
+        "threshold": 0.886
+      },
+      {
+        "coverage": 0.2556,
+        "risk": 0.087,
+        "threshold": 0.8844
+      },
+      {
+        "coverage": 0.2667,
+        "risk": 0.0833,
+        "threshold": 0.876
+      },
+      {
+        "coverage": 0.2778,
+        "risk": 0.08,
+        "threshold": 0.8728
+      },
+      {
+        "coverage": 0.2889,
+        "risk": 0.0769,
+        "threshold": 0.8532
+      },
+      {
+        "coverage": 0.3,
+        "risk": 0.0741,
+        "threshold": 0.8523
+      },
+      {
+        "coverage": 0.3111,
+        "risk": 0.0714,
+        "threshold": 0.8494
+      },
+      {
+        "coverage": 0.3222,
+        "risk": 0.069,
+        "threshold": 0.8492
+      },
+      {
+        "coverage": 0.3333,
+        "risk": 0.0667,
+        "threshold": 0.8484
+      },
+      {
+        "coverage": 0.3444,
+        "risk": 0.0645,
+        "threshold": 0.8478
+      },
+      {
+        "coverage": 0.3556,
+        "risk": 0.0625,
+        "threshold": 0.8448
+      },
+      {
+        "coverage": 0.3667,
+        "risk": 0.0909,
+        "threshold": 0.8171
+      },
+      {
+        "coverage": 0.3778,
+        "risk": 0.0882,
+        "threshold": 0.8115
+      },
+      {
+        "coverage": 0.3889,
+        "risk": 0.1143,
+        "threshold": 0.8108
+      },
+      {
+        "coverage": 0.4,
+        "risk": 0.1111,
+        "threshold": 0.8099
+      },
+      {
+        "coverage": 0.4111,
+        "risk": 0.1081,
+        "threshold": 0.8074
+      },
+      {
+        "coverage": 0.4222,
+        "risk": 0.1053,
+        "threshold": 0.8
+      },
+      {
+        "coverage": 0.4333,
+        "risk": 0.1026,
+        "threshold": 0.7971
+      },
+      {
+        "coverage": 0.4444,
+        "risk": 0.1,
+        "threshold": 0.7774
+      },
+      {
+        "coverage": 0.4556,
+        "risk": 0.122,
+        "threshold": 0.7741
+      },
+      {
+        "coverage": 0.4667,
+        "risk": 0.119,
+        "threshold": 0.7711
+      },
+      {
+        "coverage": 0.4778,
+        "risk": 0.1163,
+        "threshold": 0.761
+      },
+      {
+        "coverage": 0.4889,
+        "risk": 0.1136,
+        "threshold": 0.7607
+      },
+      {
+        "coverage": 0.5,
+        "risk": 0.1111,
+        "threshold": 0.7246
+      },
+      {
+        "coverage": 0.5111,
+        "risk": 0.1087,
+        "threshold": 0.7203
+      },
+      {
+        "coverage": 0.5222,
+        "risk": 0.1064,
+        "threshold": 0.7111
+      },
+      {
+        "coverage": 0.5333,
+        "risk": 0.1042,
+        "threshold": 0.7107
+      },
+      {
+        "coverage": 0.5444,
+        "risk": 0.1224,
+        "threshold": 0.7078
+      },
+      {
+        "coverage": 0.5556,
+        "risk": 0.12,
+        "threshold": 0.7029
+      },
+      {
+        "coverage": 0.5667,
+        "risk": 0.1176,
+        "threshold": 0.7014
+      },
+      {
+        "coverage": 0.5778,
+        "risk": 0.1154,
+        "threshold": 0.6935
+      },
+      {
+        "coverage": 0.5889,
+        "risk": 0.1132,
+        "threshold": 0.6934
+      },
+      {
+        "coverage": 0.6,
+        "risk": 0.1111,
+        "threshold": 0.692
+      },
+      {
+        "coverage": 0.6111,
+        "risk": 0.1091,
+        "threshold": 0.6733
+      },
+      {
+        "coverage": 0.6222,
+        "risk": 0.1071,
+        "threshold": 0.6716
+      },
+      {
+        "coverage": 0.6333,
+        "risk": 0.1053,
+        "threshold": 0.6639
+      },
+      {
+        "coverage": 0.6444,
+        "risk": 0.1034,
+        "threshold": 0.6555
+      },
+      {
+        "coverage": 0.6556,
+        "risk": 0.1186,
+        "threshold": 0.6554
+      },
+      {
+        "coverage": 0.6667,
+        "risk": 0.1167,
+        "threshold": 0.6545
+      },
+      {
+        "coverage": 0.6778,
+        "risk": 0.1148,
+        "threshold": 0.6538
+      },
+      {
+        "coverage": 0.6889,
+        "risk": 0.1129,
+        "threshold": 0.6526
+      },
+      {
+        "coverage": 0.7,
+        "risk": 0.1111,
+        "threshold": 0.6519
+      },
+      {
+        "coverage": 0.7111,
+        "risk": 0.1094,
+        "threshold": 0.6501
+      },
+      {
+        "coverage": 0.7333,
+        "risk": 0.1061,
+        "threshold": 0.65
+      },
+      {
+        "coverage": 0.7444,
+        "risk": 0.1045,
+        "threshold": 0.6499
+      },
+      {
+        "coverage": 0.7556,
+        "risk": 0.1029,
+        "threshold": 0.6423
+      },
+      {
+        "coverage": 0.7667,
+        "risk": 0.1014,
+        "threshold": 0.6393
+      },
+      {
+        "coverage": 0.7778,
+        "risk": 0.1,
+        "threshold": 0.5605
+      }
+    ],
+    "aurc": 0.0964,
+    "selective_accuracy_80": {
+      "coverage": 0.7778,
+      "accuracy": 0.9
+    },
+    "full_coverage": 0.7778,
+    "accuracy_when_answering": 0.9
+  }
+}

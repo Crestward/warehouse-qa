@@ -1,0 +1,17 @@
+audit: false
+batch: true
+context_budget: 3000
+effort: low
+gates: 'off'
+git_commit: 34ece19070acddcf2764935a91ccda723a438715
+graph_manifest: 0f8a7b9993a6c8e388a93f3ea3a3f99072735ce9bde93ee708e2743d756f3ca2
+max_repairs: 2
+max_tokens: 1024
+model: claude-sonnet-5-5
+name: baseline1
+retriever: hybrid
+row_limit: 1000
+split: test
+system: schema_dump
+timeout_s: 30
+verification: true

@@ -149,3 +149,16 @@ Recall@k is computed against the derived gold nodes (Phase 4), and trap checks a
 **Prompt changes** (so dev configs 4 and 6 were re-run; baseline 1 and the Phase 6 oracle were not): the typed decline, "identity is fixed", and documentation fully delimited.
 
 **Cost:** Phase 7 billed US$0.42 (dev, red team); project total US$1.41.
+
+## Q7. The test run, and what shipping v1 means (Phase 8)
+**Result** ([`results.md`](results.md)): the schema-dump baseline is more accurate on test (94.5% vs 86.3%, p = 0.031). Hybrid beats vector-only (86.3% vs 78.1%, p = 0.11). Leakage is 0 everywhere. The dev picture ("level on accuracy, better behaviour") didn't hold: config 4 fell 7.6 points from dev to test, the baseline 1.4. Config 4 was the only one iterated on dev, so that's what tuning optimism looks like.
+
+**Decision: ship it as measured.** The alternatives were to fix retrieval and re-run (that would make test a second dev set) or to lead with a friendlier metric (the "wrong, of those answered" row favours the system, but at lower coverage). Neither is honest. The README leads with the negative result and what it implies: on a small warehouse, keep the governance and drop the retrieval.
+
+**What would come next, on new questions:** the role-filtered schema as the context for small warehouses (the same pipeline, config 1's context), and better column docs for the tables retrieval misses. Parked, not started (PRD §1.4).
+
+**Demo without a key.** The page and CLI replay recorded replies for ten example questions through the response cache (`demo/recorded`), so a reviewer needs no account and pays nothing. Everything except the model call is live. None of the ten is an eval question.
+
+**One outcome for `refuse` and `abstain`.** The page and CLI say "Not answered" for both, because telling them apart would confirm what the wording doesn't (threat model C3).
+
+**The PR eval gate** runs 20 dev questions on the real model, only on labelled PRs from this repo. It fails on any leak or on more than one question lost. One question of slack, because the model isn't deterministic.

@@ -44,6 +44,8 @@ How warehouse-qa is measured (PRD §3.7). This was written in Phase 4, **before*
 7. **Drafting:** the questions and gold SQL were drafted with an AI assistant. Every gold query was executed as its role and its result inspected, and the tie, contamination and labelling checks above were run. The repo owner spot-checks a sample (`todo.md`).
 
 ### Label changes
+**Closed on 2026-11-24:** the test split has been run, so labels no longer change. Three arguable labels it exposed (q017, q021, q026) are discussed in `results.md` and left as they were.
+
 Dev results may expose labelling errors. Fixing them is allowed **until a test-split result exists**, and every fix is logged here with its reason; the split ids don't change.
 
 | Date | Question | Change | Why |
@@ -110,6 +112,8 @@ uv run warehouse-qa eval label --check            # derived gold nodes up to dat
 uv run warehouse-qa eval contamination            # 0 unreviewed hits
 uv run warehouse-qa eval run --config configs/baseline1.yaml --split dev
 uv run warehouse-qa eval rescore results/<run_id> # metrics again, no DB, no LLM
+uv run warehouse-qa eval run --config configs/config4.yaml --split ci       # the PR gate's 20
+uv run warehouse-qa eval gate results/<ci run>                              # vs the baseline
 uv run warehouse-qa eval redteam --config configs/config4.yaml              # the 50 attacks
 uv run warehouse-qa eval run --config configs/config4.yaml --gates observe  # record gate signals
 uv run warehouse-qa eval calibrate results/<observe run> --write            # thresholds, offline
