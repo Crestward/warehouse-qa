@@ -26,7 +26,12 @@ from typing import Any, Literal
 import psycopg
 import yaml
 from pydantic import BaseModel, ConfigDict
-from warehouse_graph.adapters import PostgresAdapter
+from warehouse_graph.adapters import (
+    AccessDenied,
+    PostgresAdapter,
+    WarehouseAdapter,
+    WarehouseError,
+)
 from warehouse_graph.demo.load import conninfo_from_env
 from warehouse_graph.governance import Principal, load_policies, resolve
 from warehouse_graph.graph import GraphArtifact
@@ -65,6 +70,8 @@ class RunConfig(BaseModel):
     context_budget: int = 3000
     audit: bool = False
     gates: Literal["off", "observe", "enforce"] = "off"  # Gate A/B (configs/gates.yaml)
+    # Accuracy is only ever measured on Postgres; the red team also runs on Unity Catalog.
+    backend: Literal["postgres", "databricks"] = "postgres"
     effort: Literal["low", "medium", "high"] | None = "low"
     max_tokens: int = 1024
     batch: bool = True
@@ -80,7 +87,7 @@ class RunConfig(BaseModel):
 class Context:
     env: Env
     graph: GraphArtifact
-    adapter: PostgresAdapter
+    adapter: WarehouseAdapter
     resolver: SqlNodeResolver
     scanner: LeakScanner
 
@@ -99,13 +106,22 @@ def refuse_second_test_run(name: str, results_dir: Path) -> None:
         raise RuntimeError(f"commit first: a test run needs a clean tree\n{changed}")
 
 
-def open_context(env: Env, graph: GraphArtifact) -> Context:
+def open_adapter(backend: str, graph: GraphArtifact) -> WarehouseAdapter:
+    if backend == "databricks":
+        from warehouse_graph.adapters.databricks import DatabricksAdapter
+
+        # One login per principal where there is one (DATABRICKS_TOKEN_<PRINCIPAL>).
+        return DatabricksAdapter(graph, single_identity=True)
+    return PostgresAdapter(graph)
+
+
+def open_context(env: Env, graph: GraphArtifact, backend: str = "postgres") -> Context:
     spec = resolve(load_policies(env.policies), graph)
     with psycopg.connect(conninfo_from_env()) as owner:
         return Context(
             env=env,
             graph=graph,
-            adapter=PostgresAdapter(graph),
+            adapter=open_adapter(backend, graph),
             resolver=SqlNodeResolver(graph),
             scanner=LeakScanner.from_database(owner, spec, graph),
         )
@@ -128,7 +144,7 @@ def preflight(env: Env, graph: GraphArtifact) -> list[str]:
         problems.append(f"source.shop.orders is {fresh.status}; reload the warehouse first")
     try:
         adapter.session_as(Principal("analyst_au", "")).close()
-    except psycopg.OperationalError:
+    except WarehouseError:
         problems.append("policy roles missing; run `make policies` in warehouse-graph")
     return problems
 
@@ -137,12 +153,12 @@ def _json_safe(rows: Sequence[Sequence[Any]]) -> list[list[Any]]:
     return [[normalize(v) for v in r] for r in rows]
 
 
-def _error(e: Exception) -> str:
-    return f"{type(e).__name__}: {str(e).splitlines()[0][:300]}" if str(e) else type(e).__name__
+def _error(e: WarehouseError) -> str:
+    return str(e) or type(e).__name__
 
 
 def gold_results(
-    adapter: PostgresAdapter, questions: Sequence[EvalQuestion], limit: int
+    adapter: WarehouseAdapter, questions: Sequence[EvalQuestion], limit: int
 ) -> dict[str, tuple[list[list[Any]] | None, str | None]]:
     out: dict[str, tuple[list[list[Any]] | None, str | None]] = {}
     sessions: dict[str, Any] = {}
@@ -154,7 +170,7 @@ def gold_results(
             try:
                 rows = adapter.execute(s, q.gold_sql, limit, 60)
                 out[q.id] = (_json_safe(rows.rows), None)
-            except psycopg.Error as e:
+            except WarehouseError as e:
                 out[q.id] = (None, _error(e))
     finally:
         for s in sessions.values():
@@ -197,12 +213,12 @@ def execute_answer(
         return record
     try:
         rows = ctx.adapter.execute(session, record.sql, config.row_limit, config.timeout_s)
-    except psycopg.errors.InsufficientPrivilege as e:
+    except AccessDenied as e:
         record.predicted_mode = "refuse"
         record.error = _error(e)
         record.answer_text = "That data isn't available to your role."
         return record
-    except psycopg.Error as e:
+    except WarehouseError as e:
         record.error = _error(e)
         record.answer_text = "The query failed."
         return record
@@ -225,6 +241,8 @@ def run(
     skip_preflight: bool = False,
 ) -> Path:
     env = env or Env.load()
+    if config.backend != "postgres":
+        raise ValueError("accuracy evals run on Postgres only (PRD §1.4); use eval redteam")
     if split == "test":
         refuse_second_test_run(config.name, results_dir)
     graph = GraphArtifact.load(env.graph)

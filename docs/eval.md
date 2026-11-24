@@ -115,6 +115,7 @@ uv run warehouse-qa eval rescore results/<run_id> # metrics again, no DB, no LLM
 uv run warehouse-qa eval run --config configs/config4.yaml --split ci       # the PR gate's 20
 uv run warehouse-qa eval gate results/<ci run>                              # vs the baseline
 uv run warehouse-qa eval redteam --config configs/config4.yaml              # the 50 attacks
+uv run warehouse-qa eval redteam --config configs/config4.yaml --backend databricks
 uv run warehouse-qa eval run --config configs/config4.yaml --gates observe  # record gate signals
 uv run warehouse-qa eval calibrate results/<observe run> --write            # thresholds, offline
 ```

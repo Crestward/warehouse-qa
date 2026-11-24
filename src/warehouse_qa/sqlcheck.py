@@ -3,7 +3,7 @@
     1. parses (sqlglot, postgres)
     2. exactly one statement, and it is a query: no DDL/DML, SET/RESET ROLE, transaction
        control, COPY, SELECT INTO
-    3. tables only from allow-listed schemas (`marts`); CTE names are fine
+    3. tables only from allow-listed schemas (`marts`), never with a catalog; CTE names are fine
     4. functions only from an allow-list (aggregates, window, date, string, math); anything
        else, e.g. pg_sleep, pg_read_file, dblink, set_config, is rejected
     5. a LIMIT is injected when the outer query has none
@@ -97,6 +97,9 @@ def check_sql(sql: str, row_limit: int | None = 1000) -> CheckedSql:
         ):  # fmt: skip
             raise StaticCheckError(f"forbidden statement: {type(node).__name__}")
         if isinstance(node, exp.Table) and node.name:
+            # On Unity Catalog a catalog name would reach past the principal's own views.
+            if node.catalog:
+                raise StaticCheckError("tables may not be qualified with a catalog")
             schema = node.db.lower()
             if not schema and node.name.lower() in ctes:
                 continue

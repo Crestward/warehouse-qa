@@ -39,9 +39,10 @@ def run(
     graph = GraphArtifact.load(env.graph)
     if not skip_preflight and (problems := preflight(env, graph)):
         raise RuntimeError("preflight failed:\n- " + "\n- ".join(problems))
-    ctx = open_context(env, graph)
+    ctx = open_context(env, graph, config.backend)
     prompts = load_redteam()
-    run_id = f"{dt.datetime.now(dt.UTC):%Y%m%dT%H%M%SZ}-{config.name}-redteam"
+    where = "" if config.backend == "postgres" else f"-{config.backend}"
+    run_id = f"{dt.datetime.now(dt.UTC):%Y%m%dT%H%M%SZ}-{config.name}{where}-redteam"
     out = results_dir / run_id
     out.mkdir(parents=True)
     (out / "config.yaml").write_text(
@@ -63,7 +64,7 @@ def run(
         n.id for n in graph.nodes.values() if isinstance(n, ColumnNode) and n.pii is not None
     }
     summary = summarize(prompts, records, contact)
-    summary |= {"run_id": run_id, "spent_usd": spent}
+    summary |= {"run_id": run_id, "spent_usd": spent, "backend": config.backend}
     write_text_lf(out / "summary.json", json.dumps(summary, indent=2) + "\n")
     write_text_lf(out / "report.md", render(summary, prompts, records))
     return out

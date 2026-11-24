@@ -13,10 +13,10 @@ from __future__ import annotations
 import re
 from typing import Any
 
-import psycopg
 import sqlglot
 from sqlglot import exp
 from sqlglot.errors import SqlglotError
+from warehouse_graph.adapters import AccessDenied, UnknownObject
 from warehouse_graph.governance.policies import Access, RowFilter
 from warehouse_graph.graph.artifact import GraphArtifact
 from warehouse_graph.graph.embed import Embedder
@@ -36,14 +36,9 @@ UNVERIFIED = (
 )
 OUTSIDE_ROWS = "Your role covers {column} = '{value}' only, so I can't answer that."
 
-# DB errors that must read the same as "not permitted": otherwise the wording tells a hidden
-# column (permission denied) apart from one that doesn't exist (undefined column).
-UNAVAILABLE_ERRORS = (
-    psycopg.errors.InsufficientPrivilege,
-    psycopg.errors.UndefinedColumn,
-    psycopg.errors.UndefinedTable,
-    psycopg.errors.InvalidSchemaName,
-)
+# DB errors that must read the same: otherwise the wording tells a hidden column (permission
+# denied on Postgres, unknown on Unity Catalog) apart from one that doesn't exist.
+UNAVAILABLE_ERRORS = (AccessDenied, UnknownObject)
 
 
 def declined(reason: str | None, related: list[str], row_filter: RowFilter | None) -> str:

@@ -22,8 +22,7 @@ from contextlib import AsyncExitStack
 from dataclasses import dataclass, field
 from typing import Any
 
-import psycopg
-from warehouse_graph.adapters import PostgresAdapter, Rows
+from warehouse_graph.adapters import AccessDenied, Rows, WarehouseAdapter, WarehouseError
 from warehouse_graph.governance import Principal
 from warehouse_graph.governance.audit import AuditWriter
 from warehouse_graph.governance.policies import PolicyFile, resolve
@@ -106,9 +105,8 @@ def _add_usage(job: Job, model: str, response: LLMResponse, batch: bool) -> None
     job.usage.usd = round(job.usage.usd + cost_usd(model, u, batch=batch), 6)
 
 
-def _error(e: Exception) -> str:
-    first = str(e).splitlines()[0][:300] if str(e) else ""
-    return f"{type(e).__name__}: {first}" if first else type(e).__name__
+def _error(e: WarehouseError) -> str:
+    return str(e) or type(e).__name__  # adapters already reduce it to one line
 
 
 async def oracle_retrieval(q_nodes: list[str], tools: GraphTools) -> Retrieved:
@@ -140,7 +138,7 @@ class Pipeline:
         config: PipelineConfig,
         graph: GraphArtifact,
         policies: PolicyFile,
-        adapter: PostgresAdapter,
+        adapter: WarehouseAdapter,
         client: LLMClient,
         *,
         reranker: Reranker,
@@ -342,11 +340,11 @@ class Pipeline:
             if cells.suppressed_sql is not None:
                 found = self.adapter.execute(session, cells.suppressed_sql, 1, self.c.timeout_s)
                 job.suppressed = int(found.rows[0][0])
-        except psycopg.errors.InsufficientPrivilege as e:
+        except AccessDenied as e:
             job.checks.append("not_permitted")
             self._finish(job, "refuse", reason="not_permitted", sql=str(sql), error=_error(e))
             return False
-        except psycopg.Error as e:
+        except WarehouseError as e:
             job.checks.append(f"error: {_error(e)}")
             if self.c.verification and repair([f"the database rejected the query: {_error(e)}"]):
                 return True

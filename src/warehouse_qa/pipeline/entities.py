@@ -11,8 +11,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Any
 
-import psycopg
-from warehouse_graph.adapters import PostgresAdapter
+from warehouse_graph.adapters import WarehouseAdapter, WarehouseError
 from warehouse_graph.graph.artifact import GraphArtifact
 from warehouse_graph.graph.schema import ColumnNode, ModelNode
 
@@ -58,7 +57,7 @@ def dimensions(graph: GraphArtifact) -> list[Dimension]:
 
 
 class Entities:
-    def __init__(self, dims: list[Dimension], adapter: PostgresAdapter) -> None:
+    def __init__(self, dims: list[Dimension], adapter: WarehouseAdapter) -> None:
         self.dims = {d.noun: d for d in dims}
         self.adapter = adapter
         self._values: dict[tuple[str, str], list[tuple[str, str]]] = {}
@@ -77,7 +76,7 @@ class Entities:
                     1000,
                     30,
                 ).rows
-            except psycopg.Error:
+            except WarehouseError:
                 rows = []
             self._values[key] = sorted((str(a), str(b)) for a, b in rows)
         return self._values[key]

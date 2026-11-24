@@ -17,10 +17,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-import psycopg
 import sqlglot
 from sqlglot import exp
-from warehouse_graph.adapters import PostgresAdapter, Rows, Session
+from warehouse_graph.adapters import Rows, Session, WarehouseAdapter, WarehouseError
 from warehouse_graph.graph.artifact import GraphArtifact
 from warehouse_graph.graph.schema import ColumnNode, ModelNode
 
@@ -57,7 +56,7 @@ class Verification:
 
 
 class Verifier:
-    def __init__(self, graph: GraphArtifact, adapter: PostgresAdapter, resolver: SqlNodeResolver):
+    def __init__(self, graph: GraphArtifact, adapter: WarehouseAdapter, resolver: SqlNodeResolver):
         self.graph = graph
         self.adapter = adapter
         self.resolver = resolver
@@ -141,7 +140,7 @@ class Verifier:
         )
         try:
             result = self.adapter.execute(session, probe.sql(dialect="postgres"), 1, timeout_s)
-        except psycopg.Error:
+        except WarehouseError:
             return
         n, d = result.rows[0] if result.rows else (0, 0)
         if d and n > FANOUT_RATIO * d:
@@ -189,6 +188,6 @@ class Verifier:
                 v.warnings.append(f"stale: {nid}: {note}")
 
 
-def dry_run(adapter: PostgresAdapter, session: Session, sql: str) -> Any:
-    """EXPLAIN as the role. Raises psycopg errors (permission errors included) to the caller."""
+def dry_run(adapter: WarehouseAdapter, session: Session, sql: str) -> Any:
+    """EXPLAIN as the role. Raises adapter errors (permission errors included) to the caller."""
     return adapter.explain(session, sql)
