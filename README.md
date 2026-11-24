@@ -4,7 +4,7 @@ A permission-aware, lineage-aware "ask your warehouse" assistant. Retrieval runs
 
 Part of a pair of linked portfolio projects that share [`warehouse-graph`](https://github.com/Crestward/warehouse-graph), a lineage/metadata graph served over MCP. The sibling project is [`pipeline-sentinel`](https://github.com/Crestward/pipeline-sentinel).
 
-> **Status: Phase 5 (retrieval).** The eval set and harness exist (Phase 4); graph-aware retrieval is built and measured. SQL generation and verification come in Phase 6.
+> **Status: Phase 6 (SQL generation and verification).** Eval set and harness (Phase 4), graph-aware retrieval (Phase 5), and the full question → governed SQL → verified answer pipeline are built and measured on dev. Gates and the red-team run come in Phase 7.
 
 ## How it will be measured
 Everything is in [`docs/eval.md`](docs/eval.md):
@@ -56,6 +56,23 @@ Both retrievers go through the warehouse-graph MCP tools *as the asking user*, s
 
 Details and negative results: [`docs/design-decisions.md`](docs/design-decisions.md) (Q1–Q3).
 
+## The pipeline (Phase 6): config 4 vs its ablation and the baselines, on dev
+Retrieve as the user → generate SQL (structured output) → static checks (one read-only query, `marts` only, function allow-list, LIMIT injection) → dry run and execute **as the user's own database role** → 5 sanity checks (empty, fan-out, NULLs, deprecated, stale) → up to 2 repairs (the model sees result *stats*, never rows) → answer with caveats and freshness → audit.
+
+| Dev (49 answerable, 16 traps) | Schema dump (1) | No verification (6) | **Main (4)** | Oracle retrieval |
+|---|---|---|---|---|
+| Execution accuracy | 95.9% | 91.8% | **91.8%** | 95.9% |
+| Trap avoidance | 14/16 | 12/16 | **14/16** | 16/16 |
+| Leakage | 0 | 0 | 0 | 0 |
+| Context | ~2,560 tok | 1,423 tok | 1,423 tok | 211 tok |
+
+**What the numbers say:**
+- Verification halves trap failures (4 → 2; on 16 traps that isn't statistically significant) and catches fan-outs and RLS-empty answers.
+- The main system isn't more accurate than the whole-schema baseline on a warehouse this small (91.8% vs 95.9%, n.s.). Oracle retrieval closes that gap, so retrieval is where the rest is.
+- Escalation attempts (`SET ROLE`, multiple statements, DML, `COPY`, `pg_sleep`, other schemas) are rejected before reaching the database: 21 cases tested, plus an LLM scripted to attack.
+
+Details: [`docs/design-decisions.md`](docs/design-decisions.md) Q4.
+
 ## Quick start
 ```bash
 uv sync
@@ -65,6 +82,8 @@ make eval-check       # gold queries as their roles, labels, contamination (no L
 make eval-baseline    # config 1 on dev via the Batch API (~US$0.20, or $0 from the cache)
 uv run warehouse-qa eval retrieve --retriever hybrid --split dev   # retrieval only, $0
 uv run warehouse-qa eval sweep --split dev                          # re-tune on dev, $0
+uv run warehouse-qa eval run --config configs/config4.yaml --split dev   # main system (~US$0.25)
+uv run warehouse-qa eval compare results/<run_a> results/<run_b>         # paired McNemar
 ```
 
 ## Licence

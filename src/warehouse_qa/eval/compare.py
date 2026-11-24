@@ -8,6 +8,7 @@ Rules:
   A fraction may also come back as a percentage (x100).
 - Decimal/float/int compare as numbers; dates and timestamps compare by ISO date; booleans
   only equal booleans; NULL equals NULL.
+- A group whose numeric measures are all zero may be present or absent ("Prospect: 0").
 - A period's start date also matches its month, quarter or year label ('2025-10', 'Q4 2025',
   '2025'), because how a system labels a period isn't what's being tested.
 """
@@ -99,11 +100,23 @@ def _column_matches(gold_col: list[Value], pred_col: list[Value]) -> list[float]
     ]
 
 
+def _drop_zero_rows(rows: list[tuple[Value, ...]]) -> list[tuple[Value, ...]]:
+    def all_zero(row: tuple[Value, ...]) -> bool:
+        nums = [v for v in row if isinstance(v, float)]
+        return bool(nums) and all(v == 0.0 for v in nums)
+
+    return [r for r in rows if not all_zero(r)]
+
+
 def results_match(
     gold_rows: Sequence[Sequence[Value]], pred_rows: Sequence[Sequence[Value]]
 ) -> bool:
     gold = [tuple(normalize(v) for v in r) for r in gold_rows]
     pred = [tuple(normalize(v) for v in r) for r in pred_rows]
+    if len(gold) != len(pred):
+        # A group whose measures are all zero (e.g. "Prospect: 0 churned") may be listed or
+        # left out; it isn't a different answer.
+        gold, pred = _drop_zero_rows(gold), _drop_zero_rows(pred)
     if len(gold) != len(pred):
         return False
     if not gold:

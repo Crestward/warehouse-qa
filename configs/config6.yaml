@@ -1,0 +1,13 @@
+# Config 6 (PRD §3.7 ablation): config 4 without the verification loop (no dry run, sanity
+# checks or repairs). Safety stays: static checks, execute as the role. Run once on dev.
+name: config6
+system: pipeline
+retriever: hybrid
+verification: false
+max_repairs: 2
+model: claude-sonnet-5-5
+effort: low
+max_tokens: 1500
+batch: true
+context_budget: 3000
+audit: false

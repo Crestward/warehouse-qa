@@ -1,0 +1,13 @@
+# Oracle retrieval (PRD §3.7 upper bound): config 4 with the gold nodes as its context, which
+# separates retrieval errors from generation errors. Run once on dev.
+name: oracle
+system: pipeline
+retriever: oracle
+verification: true
+max_repairs: 2
+model: claude-sonnet-5-5
+effort: low
+max_tokens: 1500
+batch: true
+context_budget: 3000
+audit: false

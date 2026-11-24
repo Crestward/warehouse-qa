@@ -225,6 +225,14 @@ def compare_retrieval(run_a: Path, run_b: Path) -> int:
     return 0
 
 
+def compare(run_a: Path, run_b: Path) -> int:
+    """Paired McNemar between two eval runs (e.g. config 4 vs config 6)."""
+    from warehouse_qa.eval.harness import compare as compare_runs
+
+    print(json.dumps(compare_runs(run_a, run_b), indent=2))
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="warehouse-qa")
     top = parser.add_subparsers(dest="group", required=True)
@@ -244,6 +252,9 @@ def main(argv: list[str] | None = None) -> int:
     ru.add_argument("--skip-preflight", action="store_true")
     rs = ev.add_parser("rescore", help="recompute metrics offline from a run's JSONL")
     rs.add_argument("run_dir", type=Path)
+    cm = ev.add_parser("compare", help="paired McNemar between two eval runs")
+    cm.add_argument("run_a", type=Path)
+    cm.add_argument("run_b", type=Path)
     rt = ev.add_parser("retrieve", help="retrieval-only run (no LLM)")
     rt.add_argument("--retriever", choices=["vector", "hybrid"], required=True)
     rt.add_argument("--split", default="dev", choices=["dev", "test", "dev_mini"])
@@ -265,6 +276,8 @@ def main(argv: list[str] | None = None) -> int:
         return contamination(args.write)
     if args.command == "run":
         return run(args.config, args.split, args.skip_preflight)
+    if args.command == "compare":
+        return compare(args.run_a, args.run_b)
     if args.command == "retrieve":
         return retrieve(args.retriever, args.split)
     if args.command == "sweep":

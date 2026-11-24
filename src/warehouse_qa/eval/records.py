@@ -55,3 +55,6 @@ class QuestionRecord(BaseModel):
     usage: Usage = Field(default_factory=Usage)
     latency_s: float = 0.0
     leaks: list[str] = Field(default_factory=list)
+    checks: list[str] = Field(default_factory=list)  # verification outcome per attempt
+    repairs: int = 0
+    reason_code: str | None = None  # why it abstained or refused

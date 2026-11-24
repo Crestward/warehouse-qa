@@ -197,9 +197,9 @@ def test_check_accepts_queries(sql: str) -> None:
         ("insert into marts.x values (1)", "not a query"),
         ("delete from marts.fct_orders", "not a query"),
         ("copy (select 1) to '/tmp/x'", "not a query"),
-        ("select pg_sleep(600)", "forbidden function"),
-        ("select pg_read_file('/etc/passwd')", "forbidden function"),
-        ("select set_config('role', 'admin', false)", "forbidden function"),
+        ("select pg_sleep(600)", "function not allowed"),
+        ("select pg_read_file('/etc/passwd')", "function not allowed"),
+        ("select set_config('role', 'admin', false)", "function not allowed"),
         ("select * into marts.x from marts.fct_orders", "SELECT INTO"),
         ("begin; select 1; commit;", "exactly one statement"),
         ("select from where", "parse error"),
@@ -271,3 +271,9 @@ def test_period_labels_match_period_start_dates() -> None:
     assert not results_match(gold, [("2025-11", 5.0)])
     assert not results_match([("2025-10-15", 5.0)], [("2025-10", 5.0)])  # not a period start
     assert not results_match([("2025-11-01", 5.0)], [("Q4 2025", 5.0)])  # not a quarter start
+
+
+def test_all_zero_groups_may_be_present_or_absent() -> None:
+    gold = [("VIP", 272.0), ("Repeat", 923.0)]
+    assert results_match(gold, [("VIP", 272.0), ("Repeat", 923.0), ("Prospect", 0.0)])
+    assert not results_match(gold, [("VIP", 272.0), ("Repeat", 923.0), ("Prospect", 5.0)])
