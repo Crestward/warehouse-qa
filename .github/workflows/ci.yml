@@ -19,4 +19,47 @@ jobs:
       - run: uv run ruff check .
       - run: uv run ruff format --check .
       - run: uv run mypy
+      - run: uv run pytest -q -m "not integration"
+
+  # The eval warehouse (docs/eval.md §8), built from warehouse-graph at the pinned commit:
+  # every gold query runs as its role, and an oracle run scores 100% with zero leaks ($0).
+  eval-data:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: warehouse
+          POSTGRES_PASSWORD: local-dev-only
+          POSTGRES_DB: warehouse
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U warehouse -d warehouse"
+          --health-interval 2s --health-timeout 3s --health-retries 30
+    env:
+      WAREHOUSE_GRAPH_DIR: ${{ github.workspace }}/warehouse-graph
+    steps:
+      - uses: actions/checkout@v4
+      - name: Pinned warehouse-graph commit
+        id: pin
+        run: |
+          python3 -c "import tomllib; s = tomllib.load(open('pyproject.toml', 'rb'))['tool']['uv']['sources']['warehouse-graph']; print('rev=' + s['rev'])" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        with:
+          repository: Crestward/warehouse-graph
+          ref: ${{ steps.pin.outputs.rev }}
+          path: warehouse-graph
+      - uses: astral-sh/setup-uv@v6
+      - run: uv python install 3.12
+      - name: Eval warehouse (ad_spend stale, graph, policies)
+        working-directory: warehouse-graph
+        run: |
+          uv sync --locked
+          uv run warehouse-graph demo-data --stale ad_spend
+          uv run warehouse-graph demo-build   # freshness errors on ad_spend on purpose; not fatal
+          uv run warehouse-graph build --embedding-model hash
+          uv run warehouse-graph policies
+      - run: uv sync --locked
+      - run: uv run warehouse-qa eval validate
+      - run: uv run warehouse-qa eval label --check
       - run: uv run pytest -q

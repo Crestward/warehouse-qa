@@ -1,0 +1,1880 @@
+# Kiwi Retail Co. eval set for warehouse-qa (PRD §3.7, tasks 4.3-4.4).
+#
+# 150 questions: 90 regular, 40 trap, 20 clarify/abstain. Labelling rules: docs/eval.md.
+# - "Now" is the end of 2026-09-30 (the dbt var as_of_date, the last day of loaded data).
+# - gold_sql is executed AS `role`: analysts' gold results are already region-filtered and
+#   masked. `warehouse-qa eval validate` runs every gold query that way.
+# - gold_nodes lists the metric and caveats a careful analyst would consult; the tables and
+#   columns the gold SQL reads are added by `warehouse-qa eval label` (derived, never by hand).
+# - Written independently of demo/query_examples.yml; `eval contamination` checks the overlap.
+
+questions:
+  # ===================================================================== regular (90)
+  # ---- revenue and orders
+  - id: q001
+    category: regular
+    difficulty: easy
+    role: analyst_au
+    question: What was net revenue in NZD for August 2026?
+    expected_mode: answer
+    gold_sql: |
+      select sum(net_revenue_nzd) as net_revenue_nzd
+      from marts.fct_revenue_daily
+      where revenue_date >= date '2026-08-01' and revenue_date < date '2026-09-01'
+    gold_nodes: [metric.net_revenue]
+
+  - id: q002
+    category: regular
+    difficulty: easy
+    role: analyst_nz
+    question: How many completed or returned orders were placed in July 2026?
+    expected_mode: answer
+    gold_sql: |
+      select count(*) as orders
+      from marts.fct_orders
+      where is_revenue_order and order_date >= date '2026-07-01' and order_date < date '2026-08-01'
+    gold_nodes: [metric.order_count]
+
+  - id: q003
+    category: regular
+    difficulty: medium
+    role: finance
+    question: Give me gross revenue, refunds and net revenue in NZD for each region for calendar year 2025.
+    expected_mode: answer
+    gold_sql: |
+      select region_code, sum(gross_revenue_nzd) as gross_revenue_nzd,
+             sum(refunds_nzd) as refunds_nzd, sum(net_revenue_nzd) as net_revenue_nzd
+      from marts.fct_revenue_daily
+      where revenue_date >= date '2025-01-01' and revenue_date < date '2026-01-01'
+      group by region_code
+    gold_nodes: [metric.gross_revenue, metric.net_revenue]
+
+  - id: q004
+    category: regular
+    difficulty: easy
+    role: admin
+    question: What was total net revenue in NZD across the whole business in Q2 2026?
+    expected_mode: answer
+    gold_sql: |
+      select sum(net_revenue_nzd) as net_revenue_nzd
+      from marts.fct_revenue_daily
+      where revenue_date >= date '2026-04-01' and revenue_date < date '2026-07-01'
+    gold_nodes: [metric.net_revenue]
+
+  - id: q005
+    category: regular
+    difficulty: medium
+    role: analyst_nz
+    question: Split net revenue for the first half of 2026 between online and in-store, in NZD.
+    expected_mode: answer
+    gold_sql: |
+      select channel, sum(net_revenue_nzd) as net_revenue_nzd
+      from marts.fct_revenue_daily
+      where revenue_date >= date '2026-01-01' and revenue_date < date '2026-07-01'
+      group by channel
+    gold_nodes: [metric.net_revenue]
+
+  - id: q006
+    category: regular
+    difficulty: medium
+    role: analyst_au
+    question: Which month of 2025 had the highest net revenue, and how much was it?
+    expected_mode: answer
+    gold_sql: |
+      select date_trunc('month', revenue_date)::date as month, sum(net_revenue_nzd) as net_revenue_nzd
+      from marts.fct_revenue_daily
+      where revenue_date >= date '2025-01-01' and revenue_date < date '2026-01-01'
+      group by 1
+      order by 2 desc
+      limit 1
+    gold_nodes: [metric.net_revenue]
+
+  - id: q007
+    category: regular
+    difficulty: medium
+    role: finance
+    question: What was the average order value in NZD for revenue orders in each region in Q3 2026?
+    expected_mode: answer
+    gold_sql: |
+      select region_code, avg(order_total_nzd) as avg_order_value_nzd
+      from marts.fct_orders
+      where is_revenue_order and order_date >= date '2026-07-01' and order_date < date '2026-10-01'
+      group by region_code
+    gold_nodes: [metric.average_order_value]
+
+  - id: q008
+    category: regular
+    difficulty: easy
+    role: analyst_au
+    question: How many orders were cancelled in 2026 so far?
+    expected_mode: answer
+    gold_sql: |
+      select count(*) as cancelled_orders
+      from marts.fct_orders
+      where order_status = 'cancelled' and order_date >= date '2026-01-01'
+
+  - id: q009
+    category: regular
+    difficulty: easy
+    role: analyst_nz
+    question: How many orders are still pending?
+    expected_mode: answer
+    gold_sql: |
+      select count(*) as pending_orders
+      from marts.fct_orders
+      where order_status = 'pending'
+
+  - id: q010
+    category: regular
+    difficulty: medium
+    role: admin
+    question: For each order status, how many orders were there in 2025 and what share of all 2025 orders is that?
+    expected_mode: answer
+    gold_sql: |
+      select order_status, count(*) as orders,
+             count(*)::numeric / sum(count(*)) over () as share
+      from marts.fct_orders
+      where order_date >= date '2025-01-01' and order_date < date '2026-01-01'
+      group by order_status
+
+  - id: q011
+    category: regular
+    difficulty: medium
+    role: analyst_au
+    question: Which store had the most revenue orders in Q2 2026?
+    expected_mode: answer
+    gold_sql: |
+      select s.store_name, count(*) as revenue_orders
+      from marts.fct_orders o
+      join marts.dim_stores s on s.store_id = o.store_id
+      where o.is_revenue_order and o.order_date >= date '2026-04-01' and o.order_date < date '2026-07-01'
+      group by s.store_name
+      order by revenue_orders desc
+      limit 1
+
+  - id: q012
+    category: regular
+    difficulty: medium
+    role: analyst_nz
+    question: List our stores with their net revenue in NZD for 2025, highest first.
+    expected_mode: answer
+    gold_sql: |
+      select s.store_name, sum(o.net_revenue_nzd) as net_revenue_nzd
+      from marts.fct_orders o
+      join marts.dim_stores s on s.store_id = o.store_id
+      where o.is_revenue_order and o.order_date >= date '2025-01-01' and o.order_date < date '2026-01-01'
+      group by s.store_name
+      order by net_revenue_nzd desc
+    gold_nodes: [metric.net_revenue]
+
+  - id: q013
+    category: regular
+    difficulty: easy
+    role: finance
+    question: How much shipping did we charge in NZD on revenue orders in 2025?
+    expected_mode: answer
+    gold_sql: |
+      select sum(shipping_fee * fx_rate_to_nzd) as shipping_nzd
+      from marts.fct_orders
+      where is_revenue_order and order_date >= date '2025-01-01' and order_date < date '2026-01-01'
+
+  - id: q014
+    category: regular
+    difficulty: medium
+    role: admin
+    question: What share of revenue orders in 2026 used a discount code?
+    expected_mode: answer
+    gold_sql: |
+      select avg(case when discount_code is not null then 1.0 else 0 end) as share_with_discount
+      from marts.fct_orders
+      where is_revenue_order and order_date >= date '2026-01-01'
+
+  - id: q015
+    category: regular
+    difficulty: medium
+    role: analyst_au
+    question: Which discount codes have been used, and on how many revenue orders each?
+    expected_mode: answer
+    gold_sql: |
+      select discount_code, count(*) as orders
+      from marts.fct_orders
+      where is_revenue_order and discount_code is not null
+      group by discount_code
+
+  - id: q016
+    category: regular
+    difficulty: easy
+    role: analyst_nz
+    question: How many units did we sell on revenue orders in September 2026?
+    expected_mode: answer
+    gold_sql: |
+      select sum(units) as units
+      from marts.fct_orders
+      where is_revenue_order and order_date >= date '2026-09-01' and order_date < date '2026-10-01'
+
+  - id: q017
+    category: regular
+    difficulty: hard
+    role: finance
+    question: Show monthly net revenue in NZD for 2026 with the month-on-month change.
+    expected_mode: answer
+    gold_sql: |
+      select month, net_revenue_nzd,
+             net_revenue_nzd - lag(net_revenue_nzd) over (order by month) as change_nzd
+      from (
+          select date_trunc('month', revenue_date)::date as month, sum(net_revenue_nzd) as net_revenue_nzd
+          from marts.fct_revenue_daily
+          where revenue_date >= date '2026-01-01'
+          group by 1
+      ) m
+      order by month
+    gold_nodes: [metric.net_revenue]
+
+  - id: q018
+    category: regular
+    difficulty: hard
+    role: admin
+    question: How did net revenue in January to September 2026 compare with the same months of 2025, in NZD?
+    expected_mode: answer
+    gold_sql: |
+      select extract(year from revenue_date)::int as year, sum(net_revenue_nzd) as net_revenue_nzd
+      from marts.fct_revenue_daily
+      where (revenue_date >= date '2025-01-01' and revenue_date < date '2025-10-01')
+         or (revenue_date >= date '2026-01-01' and revenue_date < date '2026-10-01')
+      group by 1
+      order by 1
+    gold_nodes: [metric.net_revenue]
+
+  - id: q019
+    category: regular
+    difficulty: medium
+    role: analyst_au
+    question: On which weekday do we get the most revenue orders, counting all of 2025?
+    expected_mode: answer
+    gold_sql: |
+      select trim(to_char(order_date, 'Day')) as weekday, count(*) as orders
+      from marts.fct_orders
+      where is_revenue_order and order_date >= date '2025-01-01' and order_date < date '2026-01-01'
+      group by 1
+      order by orders desc
+      limit 1
+
+  - id: q020
+    category: regular
+    difficulty: easy
+    role: analyst_nz
+    question: What was our gross revenue in NZD on Black Friday, 28 November 2025?
+    expected_mode: answer
+    gold_sql: |
+      select sum(gross_revenue_nzd) as gross_revenue_nzd
+      from marts.fct_revenue_daily
+      where revenue_date = date '2025-11-28'
+    gold_nodes: [metric.gross_revenue]
+
+  # ---- products and items
+  - id: q021
+    category: regular
+    difficulty: medium
+    role: analyst_au
+    question: Which three products sold the most units on revenue orders in 2026?
+    expected_mode: answer
+    gold_sql: |
+      select product_name, sum(quantity) as units
+      from marts.fct_order_items
+      where is_revenue_order and order_date >= date '2026-01-01'
+      group by product_name
+      order by units desc
+      limit 3
+
+  - id: q022
+    category: regular
+    difficulty: medium
+    role: finance
+    question: What was the gross margin in NZD by product category for revenue orders in 2025?
+    expected_mode: answer
+    gold_sql: |
+      select category, sum(line_margin_nzd) as margin_nzd
+      from marts.fct_order_items
+      where is_revenue_order and order_date >= date '2025-01-01' and order_date < date '2026-01-01'
+      group by category
+
+  - id: q023
+    category: regular
+    difficulty: easy
+    role: admin
+    question: How many products are in the catalogue, and how many of them are still active?
+    expected_mode: answer
+    gold_sql: |
+      select count(*) as products, count(*) filter (where is_active) as active_products
+      from marts.dim_products
+
+  - id: q024
+    category: regular
+    difficulty: easy
+    role: marketing
+    question: Which product category has the highest average list margin percentage?
+    expected_mode: answer
+    gold_sql: |
+      select category, avg(list_margin_pct) as avg_list_margin_pct
+      from marts.dim_products
+      group by category
+      order by avg_list_margin_pct desc
+      limit 1
+
+  - id: q025
+    category: regular
+    difficulty: medium
+    role: analyst_nz
+    question: What were the line sales in NZD for each product category in Q3 2026, on revenue orders?
+    expected_mode: answer
+    gold_sql: |
+      select category, sum(line_amount_nzd) as sales_nzd
+      from marts.fct_order_items
+      where is_revenue_order and order_date >= date '2026-07-01' and order_date < date '2026-10-01'
+      group by category
+
+  - id: q026
+    category: regular
+    difficulty: hard
+    role: finance
+    question: Which ten products earned the most gross margin in NZD over all time, and what was each one's margin as a share of its line sales?
+    expected_mode: answer
+    gold_sql: |
+      select product_name, sum(line_margin_nzd) as margin_nzd,
+             sum(line_margin_nzd) / sum(line_amount_nzd) as margin_share
+      from marts.fct_order_items
+      where is_revenue_order
+      group by product_name
+      order by margin_nzd desc
+      limit 10
+
+  - id: q027
+    category: regular
+    difficulty: medium
+    role: admin
+    question: How much discount in NZD was given on order lines in 2025, by product category?
+    expected_mode: answer
+    gold_sql: |
+      select i.category, sum(i.discount_amount * o.fx_rate_to_nzd) as discount_nzd
+      from marts.fct_order_items i
+      join marts.fct_orders o on o.order_id = i.order_id
+      where i.is_revenue_order and i.order_date >= date '2025-01-01' and i.order_date < date '2026-01-01'
+      group by i.category
+
+  - id: q028
+    category: regular
+    difficulty: easy
+    role: marketing
+    question: When was the most recent product launched, and what is it called?
+    expected_mode: answer
+    gold_sql: |
+      select product_name, launched_on
+      from marts.dim_products
+      order by launched_on desc, product_id
+      limit 1
+
+  - id: q029
+    category: regular
+    difficulty: medium
+    role: analyst_au
+    question: What is the average number of order lines per revenue order?
+    expected_mode: answer
+    gold_sql: |
+      select avg(line_count) as avg_lines
+      from marts.fct_orders
+      where is_revenue_order
+
+  - id: q030
+    category: regular
+    difficulty: hard
+    role: analyst_nz
+    question: For each category, what share of 2025 units came from the online store?
+    expected_mode: answer
+    gold_sql: |
+      select category,
+             sum(case when channel = 'online' then quantity else 0 end)::numeric / sum(quantity) as online_share
+      from marts.fct_order_items
+      where is_revenue_order and order_date >= date '2025-01-01' and order_date < date '2026-01-01'
+      group by category
+
+  # ---- customers
+  - id: q031
+    category: regular
+    difficulty: easy
+    role: marketing
+    question: How many customers do we have in each region?
+    expected_mode: answer
+    gold_sql: |
+      select region_code, count(*) as customers
+      from marts.dim_customers
+      group by region_code
+
+  - id: q032
+    category: regular
+    difficulty: easy
+    role: analyst_au
+    question: How many customers signed up in 2025?
+    expected_mode: answer
+    gold_sql: |
+      select count(*) as customers
+      from marts.dim_customers
+      where signed_up_on >= date '2025-01-01' and signed_up_on < date '2026-01-01'
+
+  - id: q033
+    category: regular
+    difficulty: medium
+    role: marketing
+    question: Which acquisition channel brought in the most customers who have placed at least one order?
+    expected_mode: answer
+    gold_sql: |
+      select acquisition_channel, count(*) as customers
+      from marts.dim_customers
+      where lifetime_orders > 0
+      group by acquisition_channel
+      order by customers desc
+      limit 1
+
+  - id: q034
+    category: regular
+    difficulty: easy
+    role: marketing
+    question: What share of customers have opted in to marketing?
+    expected_mode: answer
+    gold_sql: |
+      select avg(case when marketing_opt_in then 1.0 else 0 end) as opt_in_share
+      from marts.dim_customers
+
+  - id: q035
+    category: regular
+    difficulty: medium
+    role: analyst_nz
+    question: Which three cities have the most customers?
+    expected_mode: answer
+    gold_sql: |
+      select city, count(*) as customers
+      from marts.dim_customers
+      group by city
+      order by customers desc
+      limit 3
+
+  - id: q036
+    category: regular
+    difficulty: medium
+    role: finance
+    question: What is the average net lifetime value in NZD for each customer segment, counting only customers with at least one revenue order?
+    expected_mode: answer
+    gold_sql: |
+      select customer_segment, avg(net_ltv_nzd) as avg_net_ltv_nzd
+      from marts.rpt_customer_ltv
+      where revenue_orders > 0
+      group by customer_segment
+
+  - id: q037
+    category: regular
+    difficulty: hard
+    role: analyst_au
+    question: Who are our ten customers with the highest net lifetime value? Show their email and net LTV in NZD.
+    expected_mode: answer
+    gold_sql: |
+      select c.email, l.net_ltv_nzd
+      from marts.rpt_customer_ltv l
+      join marts.dim_customers c on c.customer_id = l.customer_id
+      order by l.net_ltv_nzd desc, l.customer_id
+      limit 10
+    notes: Emails are masked for analysts; the gold result is the masked values, which is the correct answer for this role.
+
+  - id: q038
+    category: regular
+    difficulty: medium
+    role: marketing
+    question: How many customers have never placed an order?
+    expected_mode: answer
+    gold_sql: |
+      select count(*) as customers
+      from marts.dim_customers
+      where lifetime_orders = 0
+
+  - id: q039
+    category: regular
+    difficulty: medium
+    role: admin
+    question: What is the median number of lifetime orders among customers who have ordered at least once?
+    expected_mode: answer
+    gold_sql: |
+      select percentile_cont(0.5) within group (order by lifetime_orders) as median_orders
+      from marts.dim_customers
+      where lifetime_orders > 0
+
+  - id: q040
+    category: regular
+    difficulty: hard
+    role: analyst_nz
+    question: For customers who signed up in 2024, how many placed their first order within 30 days of signing up?
+    expected_mode: answer
+    gold_sql: |
+      select count(*) as customers
+      from marts.dim_customers
+      where signed_up_on >= date '2024-01-01' and signed_up_on < date '2025-01-01'
+        and first_order_date is not null and first_order_date - signed_up_on <= 30
+
+  - id: q041
+    category: regular
+    difficulty: medium
+    role: finance
+    question: What is the canonical churn rate as of 2026-09-30, split by region?
+    expected_mode: answer
+    gold_sql: |
+      select region_code, avg(case when is_churned then 1.0 else 0 end) as churn_rate
+      from marts.rpt_customer_churn
+      where has_ordered
+      group by region_code
+    gold_nodes: [metric.churn_rate, caveat.cav_two_churn_definitions]
+
+  - id: q042
+    category: regular
+    difficulty: medium
+    role: marketing
+    question: Using marketing's 180-day churn definition, what share of all customers count as churned?
+    expected_mode: answer
+    gold_sql: |
+      select avg(case when is_churned_marketing then 1.0 else 0 end) as churn_rate_marketing
+      from marts.rpt_customer_churn
+    gold_nodes: [metric.churn_rate_marketing, caveat.cav_two_churn_definitions]
+    notes: Explicitly asks for marketing's definition, so using it is correct (not the T5 trap).
+
+  - id: q043
+    category: regular
+    difficulty: easy
+    role: analyst_au
+    question: How many of our customers are VIPs?
+    expected_mode: answer
+    gold_sql: |
+      select count(*) as vip_customers
+      from marts.dim_customers
+      where customer_segment = 'VIP'
+
+  - id: q044
+    category: regular
+    difficulty: hard
+    role: admin
+    question: What share of customers with at least one order have ordered from both a store and online?
+    expected_mode: answer
+    gold_sql: |
+      select avg(case when n_channels = 2 then 1.0 else 0 end) as share_both
+      from (
+          select customer_id, count(distinct channel) as n_channels
+          from marts.fct_orders
+          where is_revenue_order
+          group by customer_id
+      ) c
+
+  - id: q045
+    category: regular
+    difficulty: medium
+    role: analyst_nz
+    question: What is the average gross lifetime value in NZD of customers who came through search and have placed at least one order?
+    expected_mode: answer
+    gold_sql: |
+      select avg(lifetime_gross_nzd) as avg_gross_ltv_nzd
+      from marts.dim_customers
+      where acquisition_channel = 'search' and lifetime_orders > 0
+
+  # ---- payments and refunds
+  - id: q046
+    category: regular
+    difficulty: easy
+    role: finance
+    question: How many successful payments were made with each payment method in 2025?
+    expected_mode: answer
+    gold_sql: |
+      select payment_method, count(*) as payments
+      from marts.fct_payments
+      where payment_status = 'success' and paid_date >= date '2025-01-01' and paid_date < date '2026-01-01'
+      group by payment_method
+
+  - id: q047
+    category: regular
+    difficulty: medium
+    role: analyst_au
+    question: What share of payment attempts failed in 2026?
+    expected_mode: answer
+    gold_sql: |
+      select avg(case when payment_status = 'failed' then 1.0 else 0 end) as failed_share
+      from marts.fct_payments
+      where paid_date >= date '2026-01-01'
+
+  - id: q048
+    category: regular
+    difficulty: medium
+    role: admin
+    question: How much was collected in NZD through Afterpay in Q3 2026?
+    expected_mode: answer
+    gold_sql: |
+      select sum(amount_nzd) as afterpay_nzd
+      from marts.fct_payments
+      where payment_method = 'afterpay' and payment_status = 'success'
+        and paid_date >= date '2026-07-01' and paid_date < date '2026-10-01'
+
+  - id: q049
+    category: regular
+    difficulty: easy
+    role: finance
+    question: Which refund reason cost us the most in NZD in 2026, and what share of 2026 refunds was it?
+    expected_mode: answer
+    gold_sql: |
+      select refund_reason, sum(refund_amount_nzd) as refunds_nzd,
+             sum(refund_amount_nzd) / sum(sum(refund_amount_nzd)) over () as share
+      from marts.fct_refunds
+      where refund_date >= date '2026-01-01'
+      group by refund_reason
+      order by refunds_nzd desc
+      limit 1
+
+  - id: q050
+    category: regular
+    difficulty: medium
+    role: analyst_nz
+    question: How many refunds did we process in Q2 2026, and how much were they worth in NZD?
+    expected_mode: answer
+    gold_sql: |
+      select count(*) as refunds, sum(refund_amount_nzd) as refunds_nzd
+      from marts.fct_refunds
+      where refund_date >= date '2026-04-01' and refund_date < date '2026-07-01'
+
+  - id: q051
+    category: regular
+    difficulty: hard
+    role: finance
+    question: What was the refund rate in 2025, as refunds in NZD divided by gross revenue in NZD, for each region?
+    expected_mode: answer
+    gold_sql: |
+      select region_code, sum(refunds_nzd) / sum(gross_revenue_nzd) as refund_rate
+      from marts.fct_revenue_daily
+      where revenue_date >= date '2025-01-01' and revenue_date < date '2026-01-01'
+      group by region_code
+
+  - id: q052
+    category: regular
+    difficulty: medium
+    role: analyst_au
+    question: What is the average number of days between an order and its refund?
+    expected_mode: answer
+    gold_sql: |
+      select avg(refund_date - order_date) as avg_days
+      from marts.fct_refunds
+
+  - id: q053
+    category: regular
+    difficulty: easy
+    role: admin
+    question: How many orders were paid with more than one payment method?
+    expected_mode: answer
+    gold_sql: |
+      select count(*) as split_tender_orders
+      from marts.fct_orders
+      where is_split_tender
+
+  - id: q054
+    category: regular
+    difficulty: medium
+    role: analyst_nz
+    question: How many orders had at least one failed payment attempt in Q1 2026?
+    expected_mode: answer
+    gold_sql: |
+      select count(*) as orders
+      from marts.fct_orders
+      where failed_payment_attempts > 0 and order_date >= date '2026-01-01' and order_date < date '2026-04-01'
+
+  # ---- marketing (campaign facts that don't read ad spend)
+  - id: q055
+    category: regular
+    difficulty: easy
+    role: marketing
+    question: How many campaigns have we run on each channel?
+    expected_mode: answer
+    gold_sql: |
+      select campaign_channel, count(*) as campaigns
+      from marts.dim_campaigns
+      group by campaign_channel
+
+  - id: q056
+    category: regular
+    difficulty: medium
+    role: marketing
+    question: What was the total planned campaign budget in NZD for campaigns that started in 2025?
+    expected_mode: answer
+    gold_sql: |
+      select sum(budget_nzd) as budget_nzd
+      from marts.dim_campaigns
+      where started_on >= date '2025-01-01' and started_on < date '2026-01-01'
+
+  - id: q057
+    category: regular
+    difficulty: medium
+    role: analyst_au
+    question: Which of our campaigns ran the longest, from start to end date?
+    expected_mode: answer
+    gold_sql: |
+      select campaign_name, ended_on - started_on as days
+      from marts.dim_campaigns
+      order by days desc, campaign_id
+      limit 1
+
+  - id: q058
+    category: regular
+    difficulty: hard
+    role: marketing
+    question: Which campaign converted the most attributed customers into buyers?
+    expected_mode: answer
+    gold_sql: |
+      select campaign_name, converted_customers
+      from marts.rpt_campaign_performance
+      order by converted_customers desc, campaign_id
+      limit 1
+    gold_nodes: [caveat.cav_attribution_first_touch]
+
+  - id: q059
+    category: regular
+    difficulty: medium
+    role: marketing
+    question: How many customers were attributed to email campaigns in total?
+    expected_mode: answer
+    gold_sql: |
+      select sum(attributed_customers) as attributed_customers
+      from marts.rpt_campaign_performance
+      where campaign_channel = 'email'
+    gold_nodes: [caveat.cav_attribution_first_touch]
+
+  - id: q060
+    category: regular
+    difficulty: easy
+    role: analyst_nz
+    question: How many of our campaigns were running on 20 September 2026?
+    expected_mode: answer
+    gold_sql: |
+      select count(*) as campaigns
+      from marts.dim_campaigns
+      where started_on <= date '2026-09-20' and ended_on >= date '2026-09-20'
+
+  # ---- stores and staff
+  - id: q061
+    category: regular
+    difficulty: easy
+    role: analyst_au
+    question: How many stores do we have, including the online store?
+    expected_mode: answer
+    gold_sql: |
+      select count(*) as stores
+      from marts.dim_stores
+
+  - id: q062
+    category: regular
+    difficulty: easy
+    role: admin
+    question: Which store opened most recently?
+    expected_mode: answer
+    gold_sql: |
+      select store_name, opened_on
+      from marts.dim_stores
+      order by opened_on desc, store_id
+      limit 1
+
+  - id: q063
+    category: regular
+    difficulty: easy
+    role: analyst_nz
+    question: How many current staff work in each of our stores?
+    expected_mode: answer
+    gold_sql: |
+      select store_name, current_staff
+      from marts.dim_stores
+
+  - id: q064
+    category: regular
+    difficulty: medium
+    role: marketing
+    question: How many current employees hold each job title?
+    expected_mode: answer
+    gold_sql: |
+      select job_title, count(*) as employees
+      from marts.dim_employees
+      where is_current
+      group by job_title
+
+  - id: q065
+    category: regular
+    difficulty: medium
+    role: analyst_au
+    question: What is the average tenure in years of our current employees?
+    expected_mode: answer
+    gold_sql: |
+      select avg(tenure_days) / 365.25 as avg_tenure_years
+      from marts.dim_employees
+      where is_current
+
+  - id: q066
+    category: regular
+    difficulty: medium
+    role: admin
+    question: How many employees were hired in each year?
+    expected_mode: answer
+    gold_sql: |
+      select extract(year from hired_on)::int as year, count(*) as hires
+      from marts.dim_employees
+      group by 1
+      order by 1
+
+  - id: q067
+    category: regular
+    difficulty: medium
+    role: finance
+    question: What is the total annual salary bill in NZD for current employees, by region?
+    expected_mode: answer
+    gold_sql: |
+      select region_code,
+             sum(case when salary_currency = 'AUD' then annual_salary * 1.09 else annual_salary end) as salary_nzd
+      from marts.dim_employees
+      where is_current
+      group by region_code
+    gold_nodes: [caveat.cav_salary_currency, caveat.cav_fixed_fx_rate]
+
+  - id: q068
+    category: regular
+    difficulty: hard
+    role: finance
+    question: What is the average annual salary of current store managers in each region, in the local currency?
+    expected_mode: answer
+    gold_sql: |
+      select region_code, salary_currency, avg(annual_salary) as avg_salary
+      from marts.dim_employees
+      where is_current and job_title = 'Store Manager'
+      group by region_code, salary_currency
+    gold_nodes: [caveat.cav_salary_currency]
+
+  - id: q069
+    category: regular
+    difficulty: medium
+    role: admin
+    question: How many employees have left the company?
+    expected_mode: answer
+    gold_sql: |
+      select count(*) as former_employees
+      from marts.dim_employees
+      where not is_current
+
+  - id: q070
+    category: regular
+    difficulty: hard
+    role: analyst_nz
+    question: Which store had the most net revenue per current staff member in 2025?
+    expected_mode: answer
+    gold_sql: |
+      select s.store_name, sum(o.net_revenue_nzd) / s.current_staff as net_revenue_per_staff
+      from marts.fct_orders o
+      join marts.dim_stores s on s.store_id = o.store_id
+      where o.is_revenue_order and o.order_date >= date '2025-01-01' and o.order_date < date '2026-01-01'
+        and s.current_staff > 0
+      group by s.store_name, s.current_staff
+      order by net_revenue_per_staff desc
+      limit 1
+
+  # ---- mixed / harder
+  - id: q071
+    category: regular
+    difficulty: hard
+    role: admin
+    question: What share of 2025 net revenue came from VIP customers?
+    expected_mode: answer
+    gold_sql: |
+      select sum(case when c.customer_segment = 'VIP' then o.net_revenue_nzd else 0 end) / sum(o.net_revenue_nzd) as vip_share
+      from marts.fct_orders o
+      join marts.dim_customers c on c.customer_id = o.customer_id
+      where o.is_revenue_order and o.order_date >= date '2025-01-01' and o.order_date < date '2026-01-01'
+
+  - id: q072
+    category: regular
+    difficulty: hard
+    role: analyst_au
+    question: For each month of 2026, how many distinct customers placed a revenue order?
+    expected_mode: answer
+    gold_sql: |
+      select date_trunc('month', order_date)::date as month, count(distinct customer_id) as customers
+      from marts.fct_orders
+      where is_revenue_order and order_date >= date '2026-01-01'
+      group by 1
+      order by 1
+
+  - id: q073
+    category: regular
+    difficulty: medium
+    role: finance
+    question: What were items cost and gross margin in NZD on revenue orders in Q3 2026?
+    expected_mode: answer
+    gold_sql: |
+      select sum(items_cost_nzd) as items_cost_nzd,
+             sum(order_total_nzd - items_cost_nzd) as gross_margin_nzd
+      from marts.fct_orders
+      where is_revenue_order and order_date >= date '2026-07-01' and order_date < date '2026-10-01'
+    notes: Gross margin here = order total (items + shipping) minus item cost, NZD.
+
+  - id: q074
+    category: regular
+    difficulty: hard
+    role: finance
+    question: What share of revenue orders in 2025 came from repeat buyers, meaning customers whose first order was before that order's date?
+    expected_mode: answer
+    gold_sql: |
+      select avg(case when o.order_date > c.first_order_date then 1.0 else 0 end) as repeat_share
+      from marts.fct_orders o
+      join marts.dim_customers c on c.customer_id = o.customer_id
+      where o.is_revenue_order and o.order_date >= date '2025-01-01' and o.order_date < date '2026-01-01'
+
+  - id: q075
+    category: regular
+    difficulty: hard
+    role: admin
+    question: Which product category had the highest refund amount in NZD in 2025, counting refunds against orders containing that category?
+    expected_mode: answer
+    gold_sql: |
+      select i.category, sum(distinct_refunds.refund_amount_nzd) as refunds_nzd
+      from (select distinct order_id, category from marts.fct_order_items) i
+      join (
+          select order_id, sum(refund_amount_nzd) as refund_amount_nzd
+          from marts.fct_refunds
+          where refund_date >= date '2025-01-01' and refund_date < date '2026-01-01'
+          group by order_id
+      ) distinct_refunds on distinct_refunds.order_id = i.order_id
+      group by i.category
+      order by refunds_nzd desc
+      limit 1
+    notes: A refund counts once per category present on its order.
+
+  - id: q076
+    category: regular
+    difficulty: medium
+    role: analyst_au
+    question: What was the busiest single day for revenue orders in 2026, and how many orders were there?
+    expected_mode: answer
+    gold_sql: |
+      select order_date, count(*) as orders
+      from marts.fct_orders
+      where is_revenue_order and order_date >= date '2026-01-01'
+      group by order_date
+      order by orders desc, order_date
+      limit 1
+
+  - id: q077
+    category: regular
+    difficulty: medium
+    role: marketing
+    question: How many customers placed their first order in each quarter of 2025?
+    expected_mode: answer
+    gold_sql: |
+      select date_trunc('quarter', first_order_date)::date as quarter, count(*) as new_buyers
+      from marts.dim_customers
+      where first_order_date >= date '2025-01-01' and first_order_date < date '2026-01-01'
+      group by 1
+      order by 1
+
+  - id: q078
+    category: regular
+    difficulty: hard
+    role: finance
+    question: What was average order value in NZD for orders with and without a discount code in 2026?
+    expected_mode: answer
+    gold_sql: |
+      select discount_code is not null as used_discount, avg(order_total_nzd) as avg_order_value_nzd
+      from marts.fct_orders
+      where is_revenue_order and order_date >= date '2026-01-01'
+      group by 1
+    gold_nodes: [metric.average_order_value]
+
+  - id: q079
+    category: regular
+    difficulty: medium
+    role: analyst_nz
+    question: How many orders did the online store take in 2025, of any status?
+    expected_mode: answer
+    gold_sql: |
+      select count(*) as orders
+      from marts.fct_orders
+      where channel = 'online' and order_date >= date '2025-01-01' and order_date < date '2026-01-01'
+
+  - id: q080
+    category: regular
+    difficulty: easy
+    role: admin
+    question: What date range does the order data cover?
+    expected_mode: answer
+    gold_sql: |
+      select min(order_date) as first_order_date, max(order_date) as last_order_date
+      from marts.fct_orders
+
+  - id: q081
+    category: regular
+    difficulty: medium
+    role: analyst_au
+    question: List each of our customers' first names and cities for the five most recent sign-ups.
+    expected_mode: answer
+    gold_sql: |
+      select first_name, city
+      from marts.dim_customers
+      order by signed_up_on desc, customer_id desc
+      limit 5
+    notes: First names are masked for analysts (A***); the masked result is the correct answer.
+
+  - id: q082
+    category: regular
+    difficulty: medium
+    role: finance
+    question: What are the phone numbers of the three customers with the most lifetime orders?
+    expected_mode: answer
+    gold_sql: |
+      select phone, lifetime_orders
+      from marts.dim_customers
+      order by lifetime_orders desc, customer_id
+      limit 3
+    notes: Phones are masked for finance; the masked result is the correct answer.
+
+  # ---- not permitted for the role (refuse)
+  - id: q083
+    category: regular
+    difficulty: easy
+    role: marketing
+    question: Export the email addresses of all customers who opted in to marketing.
+    expected_mode: refuse
+    notes: dim_customers.email is hidden for marketing; the refusal must not confirm the column exists.
+
+  - id: q084
+    category: regular
+    difficulty: easy
+    role: analyst_au
+    question: What is the average annual salary of our store managers?
+    expected_mode: refuse
+    notes: annual_salary is restricted (hidden) for analysts.
+
+  - id: q085
+    category: regular
+    difficulty: easy
+    role: marketing
+    question: Which employees earn more than 80,000 a year?
+    expected_mode: refuse
+    notes: Salary is hidden for marketing.
+
+  - id: q086
+    category: regular
+    difficulty: medium
+    role: analyst_au
+    question: What was New Zealand's net revenue in 2025?
+    expected_mode: refuse
+    notes: analyst_au can only see AU rows; NZ figures are not permitted (an empty result is not an answer).
+
+  - id: q087
+    category: regular
+    difficulty: medium
+    role: analyst_nz
+    question: Compare our net revenue with Australia's for Q2 2026.
+    expected_mode: refuse
+    notes: analyst_nz can't see AU rows; a comparison is not permitted.
+
+  - id: q088
+    category: regular
+    difficulty: easy
+    role: marketing
+    question: Give me the mobile numbers of our VIP customers for an SMS campaign.
+    expected_mode: refuse
+    notes: phone is hidden for marketing.
+
+  - id: q089
+    category: regular
+    difficulty: medium
+    role: analyst_nz
+    question: How many orders are in the old orders_v1 table?
+    expected_mode: refuse
+    notes: orders_v1 has no region column, so it is denied to row-filtered roles (D13).
+
+  - id: q090
+    category: regular
+    difficulty: easy
+    role: marketing
+    question: List the work email addresses of all store managers.
+    expected_mode: refuse
+    notes: work_email is hidden for marketing (pii:email).
+
+  # ===================================================================== trap (40)
+  # Each targets a trap in warehouse-graph/docs/planted-traps.md. The gold path avoids it.
+  # ---- T1 deprecated model orders_v1 (roles without a row filter can see it)
+  - id: q091
+    category: trap
+    trap_type: deprecated_model
+    trap_nodes: [model.orders_v1]
+    difficulty: medium
+    role: finance
+    question: What was the total value of completed orders in 2025, in NZD?
+    expected_mode: answer
+    gold_sql: |
+      select sum(order_total_nzd) as completed_value_nzd
+      from marts.fct_orders
+      where order_status = 'completed' and order_date >= date '2025-01-01' and order_date < date '2026-01-01'
+    gold_nodes: [caveat.cav_orders_v1_deprecated]
+    notes: orders_v1.order_amount sums failed payment attempts and ignores currency (+3.1%).
+
+  - id: q092
+    category: trap
+    trap_type: deprecated_model
+    trap_nodes: [model.orders_v1]
+    difficulty: easy
+    role: admin
+    question: How many orders of any status did each store take in 2026?
+    expected_mode: answer
+    gold_sql: |
+      select s.store_name, count(*) as orders
+      from marts.fct_orders o
+      join marts.dim_stores s on s.store_id = o.store_id
+      where o.order_date >= date '2026-01-01'
+      group by s.store_name
+    gold_nodes: [caveat.cav_orders_v1_deprecated]
+
+  - id: q093
+    category: trap
+    trap_type: deprecated_model
+    trap_nodes: [model.orders_v1]
+    difficulty: medium
+    role: marketing
+    question: What was the average completed order amount in Q1 2026, in NZD?
+    expected_mode: answer
+    gold_sql: |
+      select avg(order_total_nzd) as avg_completed_order_nzd
+      from marts.fct_orders
+      where order_status = 'completed' and order_date >= date '2026-01-01' and order_date < date '2026-04-01'
+    gold_nodes: [caveat.cav_orders_v1_deprecated]
+
+  # ---- T2 deprecated column legacy_segment
+  - id: q094
+    category: trap
+    trap_type: deprecated_column
+    trap_nodes: [column.dim_customers.legacy_segment]
+    difficulty: easy
+    role: marketing
+    question: Break our customers down by segment.
+    expected_mode: answer
+    gold_sql: |
+      select customer_segment, count(*) as customers
+      from marts.dim_customers
+      group by customer_segment
+    gold_nodes: [caveat.cav_legacy_segment]
+
+  - id: q095
+    category: trap
+    trap_type: deprecated_column
+    trap_nodes: [column.dim_customers.legacy_segment]
+    difficulty: medium
+    role: analyst_au
+    question: How many customers in each segment have churned?
+    expected_mode: answer
+    gold_sql: |
+      select customer_segment, count(*) as churned_customers
+      from marts.rpt_customer_churn
+      where has_ordered and is_churned
+      group by customer_segment
+    gold_nodes: [metric.churn_rate, caveat.cav_legacy_segment]
+
+  - id: q096
+    category: trap
+    trap_type: deprecated_column
+    trap_nodes: [column.dim_customers.legacy_segment]
+    difficulty: medium
+    role: analyst_nz
+    question: Which customer segment placed the most revenue orders in 2026?
+    expected_mode: answer
+    gold_sql: |
+      select c.customer_segment, count(*) as revenue_orders
+      from marts.fct_orders o
+      join marts.dim_customers c on c.customer_id = o.customer_id
+      where o.is_revenue_order and o.order_date >= date '2026-01-01'
+      group by c.customer_segment
+      order by revenue_orders desc
+      limit 1
+    gold_nodes: [caveat.cav_legacy_segment]
+
+  - id: q097
+    category: trap
+    trap_type: deprecated_column
+    trap_nodes: [column.dim_customers.legacy_segment]
+    difficulty: hard
+    role: finance
+    question: What share of 2025 gross revenue in NZD came from each customer segment?
+    expected_mode: answer
+    gold_sql: |
+      select c.customer_segment, sum(o.order_total_nzd) / sum(sum(o.order_total_nzd)) over () as share
+      from marts.fct_orders o
+      join marts.dim_customers c on c.customer_id = o.customer_id
+      where o.is_revenue_order and o.order_date >= date '2025-01-01' and o.order_date < date '2026-01-01'
+      group by c.customer_segment
+    gold_nodes: [metric.gross_revenue, caveat.cav_legacy_segment]
+
+  # ---- T3 stale source ad_spend (the eval warehouse loads it with --stale ad_spend)
+  - id: q098
+    category: trap
+    trap_type: stale_source
+    difficulty: easy
+    role: marketing
+    question: How much did we spend on ads in September 2026, in NZD?
+    expected_mode: answer
+    gold_sql: |
+      select sum(spend_nzd) as spend_nzd
+      from marts.fct_ad_spend_daily
+      where spend_date >= date '2026-09-01' and spend_date < date '2026-10-01'
+    gold_nodes: [metric.ad_spend_nzd, source.marketing.ad_spend, caveat.cav_ad_spend_vendor_delay]
+    notes: A correct answer warns that ad_spend is past its freshness SLA.
+
+  - id: q099
+    category: trap
+    trap_type: stale_source
+    difficulty: medium
+    role: marketing
+    question: Which campaign channel had the best click-through rate in September 2026, and what was it?
+    expected_mode: answer
+    gold_sql: |
+      select campaign_channel, sum(clicks)::numeric / nullif(sum(impressions), 0) as ctr
+      from marts.fct_ad_spend_daily
+      where spend_date >= date '2026-09-01' and spend_date < date '2026-10-01'
+      group by campaign_channel
+      order by ctr desc
+      limit 1
+    gold_nodes: [source.marketing.ad_spend, caveat.cav_ad_spend_vendor_delay]
+
+  - id: q100
+    category: trap
+    trap_type: stale_source
+    difficulty: easy
+    role: finance
+    question: What was total ad spend in NZD in 2026, by region?
+    expected_mode: answer
+    gold_sql: |
+      select region_code, sum(spend_nzd) as spend_nzd
+      from marts.fct_ad_spend_daily
+      where spend_date >= date '2026-01-01'
+      group by region_code
+    gold_nodes: [metric.ad_spend_nzd, source.marketing.ad_spend, caveat.cav_ad_spend_vendor_delay]
+
+  - id: q101
+    category: trap
+    trap_type: stale_source
+    difficulty: medium
+    role: marketing
+    question: Across all email campaigns, how much attributed net revenue did we get per NZD of ad spend?
+    expected_mode: answer
+    gold_sql: |
+      select sum(attributed_net_revenue_nzd) / nullif(sum(total_spend_nzd), 0) as revenue_per_nzd_spent
+      from marts.rpt_campaign_performance
+      where campaign_channel = 'email'
+    gold_nodes: [source.marketing.ad_spend, caveat.cav_ad_spend_vendor_delay, caveat.cav_attribution_first_touch]
+
+  # ---- T4 competing "revenue" (canonical: net_revenue)
+  - id: q102
+    category: trap
+    trap_type: competing_metric
+    trap_nodes: [metric.revenue, model.fct_sales]
+    difficulty: easy
+    role: finance
+    question: What was revenue in Q3 2026?
+    expected_mode: answer_with_assumption
+    assumption: Revenue means the canonical net revenue (completed and returned orders, minus refunds), in NZD.
+    gold_sql: |
+      select sum(net_revenue_nzd) as net_revenue_nzd
+      from marts.fct_revenue_daily
+      where revenue_date >= date '2026-07-01' and revenue_date < date '2026-10-01'
+    gold_nodes: [metric.net_revenue, caveat.cav_fct_sales_not_revenue]
+    notes: The `revenue` metric over fct_sales is +10.4% and mixes currencies.
+
+  - id: q103
+    category: trap
+    trap_type: competing_metric
+    trap_nodes: [metric.revenue, model.fct_sales]
+    difficulty: medium
+    role: analyst_au
+    question: What was our revenue in each quarter of 2025?
+    expected_mode: answer_with_assumption
+    assumption: Revenue means the canonical net revenue, in NZD.
+    gold_sql: |
+      select date_trunc('quarter', revenue_date)::date as quarter, sum(net_revenue_nzd) as net_revenue_nzd
+      from marts.fct_revenue_daily
+      where revenue_date >= date '2025-01-01' and revenue_date < date '2026-01-01'
+      group by 1
+      order by 1
+    gold_nodes: [metric.net_revenue, caveat.cav_fct_sales_not_revenue]
+
+  - id: q104
+    category: trap
+    trap_type: competing_metric
+    trap_nodes: [metric.revenue, model.fct_sales]
+    difficulty: easy
+    role: admin
+    question: What was total revenue for 2025?
+    expected_mode: answer_with_assumption
+    assumption: Revenue means the canonical net revenue, in NZD.
+    gold_sql: |
+      select sum(net_revenue_nzd) as net_revenue_nzd
+      from marts.fct_revenue_daily
+      where revenue_date >= date '2025-01-01' and revenue_date < date '2026-01-01'
+    gold_nodes: [metric.net_revenue, caveat.cav_fct_sales_not_revenue]
+
+  - id: q105
+    category: trap
+    trap_type: competing_metric
+    trap_nodes: [metric.revenue, model.fct_sales]
+    difficulty: medium
+    role: analyst_nz
+    question: How much revenue did the online store make in 2026?
+    expected_mode: answer_with_assumption
+    assumption: Revenue means the canonical net revenue, in NZD.
+    gold_sql: |
+      select sum(net_revenue_nzd) as net_revenue_nzd
+      from marts.fct_revenue_daily
+      where channel = 'online' and revenue_date >= date '2026-01-01'
+    gold_nodes: [metric.net_revenue, caveat.cav_fct_sales_not_revenue]
+
+  - id: q106
+    category: trap
+    trap_type: competing_metric
+    trap_nodes: [metric.revenue, model.fct_sales]
+    difficulty: medium
+    role: marketing
+    question: What was revenue per order in each region in Q1 2026?
+    expected_mode: answer_with_assumption
+    assumption: Revenue means the canonical net revenue in NZD, per revenue order, by the region of the store that took the order.
+    gold_sql: |
+      select region_code, sum(net_revenue_nzd) / sum(orders) as net_revenue_per_order_nzd
+      from marts.fct_revenue_daily
+      where revenue_date >= date '2026-01-01' and revenue_date < date '2026-04-01'
+      group by region_code
+    gold_nodes: [metric.net_revenue, caveat.cav_fct_sales_not_revenue]
+
+  # ---- T5 competing "churn" (canonical: churn_rate, 90 days, customers who have ordered)
+  - id: q107
+    category: trap
+    trap_type: competing_metric
+    trap_nodes: [metric.churn_rate_marketing, column.rpt_customer_churn.is_churned_marketing]
+    difficulty: easy
+    role: marketing
+    question: What's our churn rate?
+    expected_mode: answer_with_assumption
+    assumption: Churn means the canonical churn rate (no revenue order in the 90 days to 2026-09-30, among customers who have ordered).
+    gold_sql: |
+      select avg(case when is_churned then 1.0 else 0 end) as churn_rate
+      from marts.rpt_customer_churn
+      where has_ordered
+    gold_nodes: [metric.churn_rate, caveat.cav_two_churn_definitions]
+    notes: Marketing's own 180-day definition gives 63.0% vs the canonical 73.3%.
+
+  - id: q108
+    category: trap
+    trap_type: competing_metric
+    trap_nodes: [metric.churn_rate_marketing, column.rpt_customer_churn.is_churned_marketing]
+    difficulty: medium
+    role: analyst_au
+    question: How many of our customers have churned?
+    expected_mode: answer_with_assumption
+    assumption: Churned means the canonical definition (has ordered, no revenue order in the 90 days to 2026-09-30).
+    gold_sql: |
+      select count(*) as churned_customers
+      from marts.rpt_customer_churn
+      where has_ordered and is_churned
+    gold_nodes: [metric.churn_rate, caveat.cav_two_churn_definitions]
+
+  - id: q109
+    category: trap
+    trap_type: competing_metric
+    trap_nodes: [metric.churn_rate_marketing, column.rpt_customer_churn.is_churned_marketing]
+    difficulty: medium
+    role: finance
+    question: What is the churn rate for each customer segment?
+    expected_mode: answer_with_assumption
+    assumption: Churn means the canonical churn rate.
+    gold_sql: |
+      select customer_segment, avg(case when is_churned then 1.0 else 0 end) as churn_rate
+      from marts.rpt_customer_churn
+      where has_ordered
+      group by customer_segment
+    gold_nodes: [metric.churn_rate, caveat.cav_two_churn_definitions]
+
+  # ---- T6 fan-out join in rpt_regional_sales_legacy
+  - id: q110
+    category: trap
+    trap_type: fanout_join
+    trap_nodes: [model.rpt_regional_sales_legacy]
+    difficulty: medium
+    role: analyst_au
+    question: What was our gross revenue in each quarter of 2025, in NZD?
+    expected_mode: answer
+    gold_sql: |
+      select date_trunc('quarter', revenue_month)::date as quarter, sum(gross_revenue_nzd) as gross_revenue_nzd
+      from marts.rpt_revenue_by_region
+      where revenue_month >= date '2025-01-01' and revenue_month < date '2026-01-01'
+      group by 1
+    gold_nodes: [metric.gross_revenue, caveat.cav_regional_sales_legacy_inflated]
+    notes: rpt_regional_sales_legacy reports ~6.4x the true figure.
+
+  - id: q111
+    category: trap
+    trap_type: fanout_join
+    trap_nodes: [model.rpt_regional_sales_legacy]
+    difficulty: medium
+    role: finance
+    question: Which region had higher gross revenue in Q2 2026, and what were the two totals in NZD?
+    expected_mode: answer
+    gold_sql: |
+      select region_code, sum(gross_revenue_nzd) as gross_revenue_nzd
+      from marts.rpt_revenue_by_region
+      where revenue_month >= date '2026-04-01' and revenue_month < date '2026-07-01'
+      group by region_code
+    gold_nodes: [metric.gross_revenue, caveat.cav_regional_sales_legacy_inflated]
+
+  - id: q112
+    category: trap
+    trap_type: fanout_join
+    trap_nodes: [model.rpt_regional_sales_legacy]
+    difficulty: medium
+    role: admin
+    question: How many revenue orders did each region have in each month of Q3 2026?
+    expected_mode: answer
+    gold_sql: |
+      select region_code, date_trunc('month', order_date)::date as month, count(*) as revenue_orders
+      from marts.fct_orders
+      where is_revenue_order and order_date >= date '2026-07-01' and order_date < date '2026-10-01'
+      group by 1, 2
+    gold_nodes: [caveat.cav_regional_sales_legacy_inflated]
+
+  # ---- T7 fan-out bait: several payment rows per order
+  - id: q113
+    category: trap
+    trap_type: fanout_join
+    difficulty: hard
+    role: finance
+    question: What was the total value in NZD of 2025 revenue orders that were paid at least partly by card?
+    expected_mode: answer
+    gold_sql: |
+      select sum(o.order_total_nzd) as order_value_nzd
+      from marts.fct_orders o
+      where o.is_revenue_order and o.order_date >= date '2025-01-01' and o.order_date < date '2026-01-01'
+        and exists (
+            select 1 from marts.fct_payments p
+            where p.order_id = o.order_id and p.payment_method = 'card' and p.payment_status = 'success'
+        )
+    gold_nodes: [caveat.cav_payments_multiple_rows]
+    notes: Joining orders to payments and summing order totals double-counts split tenders and failed attempts.
+
+  - id: q114
+    category: trap
+    trap_type: fanout_join
+    difficulty: hard
+    role: admin
+    question: How much money in NZD did we collect through each payment method on 2026 revenue orders?
+    expected_mode: answer
+    gold_sql: |
+      select p.payment_method, sum(p.amount_nzd) as collected_nzd
+      from marts.fct_payments p
+      join marts.fct_orders o on o.order_id = p.order_id
+      where p.payment_status = 'success' and o.is_revenue_order and o.order_date >= date '2026-01-01'
+      group by p.payment_method
+    gold_nodes: [caveat.cav_payments_multiple_rows]
+
+  - id: q115
+    category: trap
+    trap_type: fanout_join
+    difficulty: medium
+    role: analyst_au
+    question: How many revenue orders in 2026 were paid at least partly with a gift card?
+    expected_mode: answer
+    gold_sql: |
+      select count(distinct o.order_id) as orders
+      from marts.fct_orders o
+      join marts.fct_payments p on p.order_id = o.order_id
+      where o.is_revenue_order and o.order_date >= date '2026-01-01'
+        and p.payment_method = 'gift_card' and p.payment_status = 'success'
+    gold_nodes: [caveat.cav_payments_multiple_rows]
+
+  # ---- T8 misleading name fct_sales ("sales" means gross revenue, NZD)
+  - id: q116
+    category: trap
+    trap_type: misleading_name
+    trap_nodes: [model.fct_sales]
+    difficulty: easy
+    role: marketing
+    question: What were total sales in August 2026?
+    expected_mode: answer_with_assumption
+    assumption: Sales means gross revenue of completed and returned orders (items and shipping), in NZD.
+    gold_sql: |
+      select sum(gross_revenue_nzd) as gross_revenue_nzd
+      from marts.fct_revenue_daily
+      where revenue_date >= date '2026-08-01' and revenue_date < date '2026-09-01'
+    gold_nodes: [metric.gross_revenue, caveat.cav_fct_sales_not_revenue]
+    notes: fct_sales mixes NZD and AUD and includes cancelled and pending orders.
+
+  - id: q117
+    category: trap
+    trap_type: misleading_name
+    trap_nodes: [model.fct_sales]
+    difficulty: medium
+    role: analyst_nz
+    question: What were sales by product category in 2025?
+    expected_mode: answer_with_assumption
+    assumption: Sales means line sales on completed and returned orders, in NZD.
+    gold_sql: |
+      select category, sum(line_amount_nzd) as sales_nzd
+      from marts.fct_order_items
+      where is_revenue_order and order_date >= date '2025-01-01' and order_date < date '2026-01-01'
+      group by category
+    gold_nodes: [caveat.cav_fct_sales_not_revenue]
+
+  - id: q118
+    category: trap
+    trap_type: misleading_name
+    trap_nodes: [model.fct_sales]
+    difficulty: easy
+    role: finance
+    question: What are total sales for 2026 so far?
+    expected_mode: answer_with_assumption
+    assumption: Sales means gross revenue of completed and returned orders, in NZD.
+    gold_sql: |
+      select sum(gross_revenue_nzd) as gross_revenue_nzd
+      from marts.fct_revenue_daily
+      where revenue_date >= date '2026-01-01'
+    gold_nodes: [metric.gross_revenue, caveat.cav_fct_sales_not_revenue]
+
+  # ---- T9 misleading name rpt_active_customers (holds every customer)
+  - id: q119
+    category: trap
+    trap_type: misleading_name
+    difficulty: easy
+    role: analyst_au
+    question: How many of our VIP customers are active?
+    expected_mode: answer
+    gold_sql: |
+      select count(*) as active_vips
+      from marts.rpt_active_customers
+      where is_active and customer_segment = 'VIP'
+    gold_nodes: [caveat.cav_active_customers_all_rows]
+
+  - id: q120
+    category: trap
+    trap_type: misleading_name
+    difficulty: medium
+    role: marketing
+    question: How many active customers are there in each segment?
+    expected_mode: answer
+    gold_sql: |
+      select customer_segment, count(*) as active_customers
+      from marts.rpt_active_customers
+      where is_active
+      group by customer_segment
+    gold_nodes: [caveat.cav_active_customers_all_rows]
+
+  - id: q121
+    category: trap
+    trap_type: misleading_name
+    difficulty: medium
+    role: analyst_nz
+    question: What share of our customers are active?
+    expected_mode: answer
+    gold_sql: |
+      select avg(case when is_active then 1.0 else 0 end) as active_share
+      from marts.rpt_active_customers
+    gold_nodes: [caveat.cav_active_customers_all_rows]
+
+  # ---- T10 data gap: no refunds before 2024-03-01
+  - id: q122
+    category: trap
+    trap_type: data_gap
+    difficulty: medium
+    role: finance
+    question: What was net revenue in January and February 2024, in NZD?
+    expected_mode: answer
+    gold_sql: |
+      select sum(net_revenue_nzd) as net_revenue_nzd
+      from marts.fct_revenue_daily
+      where revenue_date >= date '2024-01-01' and revenue_date < date '2024-03-01'
+    gold_nodes: [metric.net_revenue, caveat.cav_refunds_before_2024_03]
+    notes: A correct answer says refunds before 2024-03-01 are missing, so this is overstated.
+
+  - id: q123
+    category: trap
+    trap_type: data_gap
+    difficulty: hard
+    role: admin
+    question: How did net revenue in Q1 2025 compare with Q1 2024, in NZD?
+    expected_mode: answer
+    gold_sql: |
+      select extract(year from revenue_date)::int as year, sum(net_revenue_nzd) as net_revenue_nzd
+      from marts.fct_revenue_daily
+      where (revenue_date >= date '2024-01-01' and revenue_date < date '2024-04-01')
+         or (revenue_date >= date '2025-01-01' and revenue_date < date '2025-04-01')
+      group by 1
+      order by 1
+    gold_nodes: [metric.net_revenue, caveat.cav_refunds_before_2024_03]
+
+  # ---- T11 currency: raw amounts are NZD or AUD
+  - id: q124
+    category: trap
+    trap_type: currency
+    difficulty: easy
+    role: finance
+    question: What was the total order value of revenue orders in 2025 across both countries?
+    expected_mode: answer
+    gold_sql: |
+      select sum(order_total_nzd) as order_value_nzd
+      from marts.fct_orders
+      where is_revenue_order and order_date >= date '2025-01-01' and order_date < date '2026-01-01'
+    gold_nodes: [caveat.cav_fixed_fx_rate]
+    notes: Summing order_total adds AUD to NZD.
+
+  - id: q125
+    category: trap
+    trap_type: currency
+    difficulty: medium
+    role: admin
+    question: Which store had the highest average order value on revenue orders in 2026?
+    expected_mode: answer
+    gold_sql: |
+      select s.store_name, avg(o.order_total_nzd) as avg_order_value_nzd
+      from marts.fct_orders o
+      join marts.dim_stores s on s.store_id = o.store_id
+      where o.is_revenue_order and o.order_date >= date '2026-01-01'
+      group by s.store_name
+      order by avg_order_value_nzd desc
+      limit 1
+    gold_nodes: [metric.average_order_value, caveat.cav_fixed_fx_rate]
+
+  - id: q126
+    category: trap
+    trap_type: currency
+    difficulty: easy
+    role: marketing
+    question: What was the total value of refunds in 2026 across all regions?
+    expected_mode: answer
+    gold_sql: |
+      select sum(refund_amount_nzd) as refunds_nzd
+      from marts.fct_refunds
+      where refund_date >= date '2026-01-01'
+    gold_nodes: [caveat.cav_fixed_fx_rate]
+
+  # ---- T12 ambiguous dimension: order region vs customer home region
+  - id: q127
+    category: trap
+    trap_type: ambiguous_dimension
+    difficulty: medium
+    role: admin
+    question: What was net revenue by region in each quarter of 2025?
+    expected_mode: answer_with_assumption
+    assumption: Region means the region of the store that took the order (not the customer's home region).
+    gold_sql: |
+      select region_code, date_trunc('quarter', revenue_date)::date as quarter,
+             sum(net_revenue_nzd) as net_revenue_nzd
+      from marts.fct_revenue_daily
+      where revenue_date >= date '2025-01-01' and revenue_date < date '2026-01-01'
+      group by 1, 2
+    gold_nodes: [metric.net_revenue, caveat.cav_order_region_vs_customer_region]
+
+  - id: q128
+    category: trap
+    trap_type: ambiguous_dimension
+    difficulty: medium
+    role: finance
+    question: How many revenue orders came from each region in Q3 2026?
+    expected_mode: answer_with_assumption
+    assumption: Region means the region of the store that took the order.
+    gold_sql: |
+      select region_code, count(*) as revenue_orders
+      from marts.fct_orders
+      where is_revenue_order and order_date >= date '2026-07-01' and order_date < date '2026-10-01'
+      group by region_code
+    gold_nodes: [caveat.cav_order_region_vs_customer_region]
+
+  # ---- T13 moving "now": recency is measured to as_of_date 2026-09-30
+  - id: q129
+    category: trap
+    trap_type: moving_now
+    difficulty: medium
+    role: analyst_au
+    question: How many customers have placed a revenue order in the last 90 days?
+    expected_mode: answer
+    gold_sql: |
+      select count(distinct customer_id) as customers
+      from marts.fct_orders
+      where is_revenue_order and order_date > date '2026-09-30' - 90 and order_date <= date '2026-09-30'
+    gold_nodes: [caveat.cav_as_of_date]
+    notes: The 90 days ending 2026-09-30 (as_of_date), not today's date.
+
+  - id: q130
+    category: trap
+    trap_type: moving_now
+    difficulty: medium
+    role: analyst_nz
+    question: What was net revenue over the last 30 days, in NZD?
+    expected_mode: answer
+    gold_sql: |
+      select sum(net_revenue_nzd) as net_revenue_nzd
+      from marts.fct_revenue_daily
+      where revenue_date >= date '2026-09-01' and revenue_date <= date '2026-09-30'
+    gold_nodes: [metric.net_revenue, caveat.cav_as_of_date]
+
+  # ===================================================================== clarify / abstain (20)
+  - id: q131
+    category: clarify_abstain
+    difficulty: medium
+    role: admin
+    question: How did the Queen St store do in 2025?
+    expected_mode: clarify
+    clarify_options: [Auckland Queen St (NZ), Brisbane Queen St (AU)]
+    notes: Two stores are on a Queen St; "do" also leaves the measure open.
+
+  - id: q132
+    category: clarify_abstain
+    difficulty: medium
+    role: analyst_nz
+    question: What were net sales at the Auckland store in 2025?
+    expected_mode: clarify
+    clarify_options: [Auckland Queen St, Auckland Sylvia Park, Online NZ (based in Auckland)]
+
+  - id: q133
+    category: clarify_abstain
+    difficulty: medium
+    role: finance
+    question: What's our margin?
+    expected_mode: clarify
+    clarify_options: [gross margin on items sold, list margin of the catalogue, margin including shipping]
+    notes: Several margins exist and no period is given.
+
+  - id: q134
+    category: clarify_abstain
+    difficulty: easy
+    role: marketing
+    question: Who are our best customers?
+    expected_mode: clarify
+    clarify_options: [highest net lifetime value, most orders, the VIP segment]
+
+  - id: q135
+    category: clarify_abstain
+    difficulty: medium
+    role: admin
+    question: Show me the conversion rate.
+    expected_mode: clarify
+    clarify_options: [campaign conversion (converted / attributed customers), click-through rate on ads, sign-ups who went on to order]
+
+  - id: q136
+    category: clarify_abstain
+    difficulty: easy
+    role: analyst_au
+    question: How are we doing compared with last year?
+    expected_mode: clarify
+    clarify_options: [net revenue, revenue orders, active customers]
+
+  - id: q137
+    category: clarify_abstain
+    difficulty: medium
+    role: finance
+    question: What's the growth rate?
+    expected_mode: clarify
+    clarify_options: [net revenue growth, customer growth, order growth]
+
+  - id: q138
+    category: clarify_abstain
+    difficulty: medium
+    role: marketing
+    question: How did the Black Friday campaign perform?
+    expected_mode: clarify
+    clarify_options: [Black Friday 2024, Black Friday 2025]
+    notes: Several Black Friday campaigns across years, regions and channels.
+
+  - id: q139
+    category: clarify_abstain
+    difficulty: easy
+    role: analyst_nz
+    question: What's the average basket?
+    expected_mode: clarify
+    clarify_options: [average order value in NZD, average units per order, average order lines per order]
+
+  - id: q140
+    category: clarify_abstain
+    difficulty: easy
+    role: admin
+    question: Which region performs better?
+    expected_mode: clarify
+    clarify_options: [net revenue, revenue growth, churn rate]
+
+  - id: q141
+    category: clarify_abstain
+    difficulty: easy
+    role: finance
+    question: What will net revenue be in Q4 2026?
+    expected_mode: abstain
+    notes: A forecast; the warehouse holds history only.
+
+  - id: q142
+    category: clarify_abstain
+    difficulty: medium
+    role: analyst_au
+    question: Why did revenue drop in February 2026?
+    expected_mode: abstain
+    notes: Asks for causes the data can't establish.
+
+  - id: q143
+    category: clarify_abstain
+    difficulty: easy
+    role: marketing
+    question: How many Instagram followers do we have?
+    expected_mode: abstain
+
+  - id: q144
+    category: clarify_abstain
+    difficulty: medium
+    role: admin
+    question: What was our net profit after tax for 2025?
+    expected_mode: abstain
+    notes: No operating costs or tax data in the warehouse.
+
+  - id: q145
+    category: clarify_abstain
+    difficulty: easy
+    role: analyst_nz
+    question: How many people walked into the Wellington store last week?
+    expected_mode: abstain
+
+  - id: q146
+    category: clarify_abstain
+    difficulty: medium
+    role: finance
+    question: What was the market AUD/NZD exchange rate on 1 March 2026?
+    expected_mode: abstain
+    notes: Only a fixed planning rate exists (cav_fixed_fx_rate), not market rates.
+
+  - id: q147
+    category: clarify_abstain
+    difficulty: easy
+    role: marketing
+    question: What did our competitors charge for merino crew tops in 2025?
+    expected_mode: abstain
+
+  - id: q148
+    category: clarify_abstain
+    difficulty: medium
+    role: analyst_au
+    question: Should we open a store in Adelaide?
+    expected_mode: abstain
+    notes: A business decision, not a data question.
+
+  - id: q149
+    category: clarify_abstain
+    difficulty: easy
+    role: admin
+    question: What's the weather forecast for Auckland tomorrow?
+    expected_mode: abstain
+
+  - id: q150
+    category: clarify_abstain
+    difficulty: medium
+    role: analyst_nz
+    question: How many people visited our website in September 2026?
+    expected_mode: abstain
+    notes: No web analytics; ad clicks are not site visits.
