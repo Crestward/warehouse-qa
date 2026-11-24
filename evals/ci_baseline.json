@@ -1,0 +1,85 @@
+{
+ "from_run": "20261124T114550Z-config4-dev",
+ "questions": {
+  "q001": {
+   "exec_correct": true,
+   "mode_correct_lenient": true
+  },
+  "q002": {
+   "exec_correct": true,
+   "mode_correct_lenient": true
+  },
+  "q005": {
+   "exec_correct": true,
+   "mode_correct_lenient": true
+  },
+  "q018": {
+   "exec_correct": true,
+   "mode_correct_lenient": true
+  },
+  "q019": {
+   "exec_correct": true,
+   "mode_correct_lenient": true
+  },
+  "q032": {
+   "exec_correct": true,
+   "mode_correct_lenient": true
+  },
+  "q041": {
+   "exec_correct": true,
+   "mode_correct_lenient": true
+  },
+  "q045": {
+   "exec_correct": false,
+   "mode_correct_lenient": true
+  },
+  "q055": {
+   "exec_correct": true,
+   "mode_correct_lenient": true
+  },
+  "q067": {
+   "exec_correct": true,
+   "mode_correct_lenient": true
+  },
+  "q075": {
+   "exec_correct": true,
+   "mode_correct_lenient": true
+  },
+  "q081": {
+   "exec_correct": true,
+   "mode_correct_lenient": true
+  },
+  "q085": {
+   "exec_correct": null,
+   "mode_correct_lenient": true
+  },
+  "q094": {
+   "exec_correct": true,
+   "mode_correct_lenient": true
+  },
+  "q098": {
+   "exec_correct": true,
+   "mode_correct_lenient": true
+  },
+  "q099": {
+   "exec_correct": true,
+   "mode_correct_lenient": true
+  },
+  "q117": {
+   "exec_correct": true,
+   "mode_correct_lenient": true
+  },
+  "q121": {
+   "exec_correct": true,
+   "mode_correct_lenient": true
+  },
+  "q131": {
+   "exec_correct": null,
+   "mode_correct_lenient": true
+  },
+  "q150": {
+   "exec_correct": null,
+   "mode_correct_lenient": true
+  }
+ }
+}

@@ -26,7 +26,8 @@ SPLIT_DIR = Path("evals/splits")
 SEED = 20261026
 DEV_SHARE = 0.4
 DEV_MINI = 30
-SPLITS = ("dev", "test", "dev_mini")
+CI = 20  # the PR eval gate (task 8.5), from dev-mini
+SPLITS = ("dev", "test", "dev_mini", "ci")
 
 
 def _stratified(items: list[EvalQuestion], n: int, rng: random.Random) -> list[EvalQuestion]:
@@ -54,10 +55,12 @@ def make_splits(questions: list[EvalQuestion], seed: int = SEED) -> dict[str, li
     dev_ids = {q.id for q in dev}
     test = [q for q in questions if q.id not in dev_ids]
     mini = _stratified(dev, DEV_MINI, rng)
+    ci = _stratified(mini, CI, rng)  # drawn last, so adding it changed no other split
     return {
         "dev": [q.id for q in dev],
         "test": sorted(q.id for q in test),
         "dev_mini": [q.id for q in mini],
+        "ci": [q.id for q in ci],
     }
 
 

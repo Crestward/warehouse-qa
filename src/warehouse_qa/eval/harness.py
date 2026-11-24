@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import subprocess
 import time
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -58,7 +59,7 @@ class RunConfig(BaseModel):
     system: Literal["schema_dump", "pipeline"]
     model: str
     # pipeline only (configs 4, 6 and oracle; PRD §3.7)
-    retriever: Literal["hybrid", "oracle"] = "hybrid"
+    retriever: Literal["hybrid", "vector", "oracle"] = "hybrid"
     verification: bool = True
     max_repairs: int = 2
     context_budget: int = 3000
@@ -82,6 +83,20 @@ class Context:
     adapter: PostgresAdapter
     resolver: SqlNodeResolver
     scanner: LeakScanner
+
+
+def git(*args: str) -> str:
+    done = subprocess.run(["git", *args], capture_output=True, text=True, check=False)
+    return done.stdout.strip()
+
+
+def refuse_second_test_run(name: str, results_dir: Path) -> None:
+    """The test split runs once per config, from committed code (docs/eval.md §7)."""
+    previous = sorted(results_dir.glob(f"*-{name}-test"))
+    if previous:
+        raise RuntimeError(f"{name} already ran on test ({previous[0].name}); test runs once")
+    if changed := git("status", "--porcelain", "--untracked-files=no"):
+        raise RuntimeError(f"commit first: a test run needs a clean tree\n{changed}")
 
 
 def open_context(env: Env, graph: GraphArtifact) -> Context:
@@ -210,6 +225,8 @@ def run(
     skip_preflight: bool = False,
 ) -> Path:
     env = env or Env.load()
+    if split == "test":
+        refuse_second_test_run(config.name, results_dir)
     graph = GraphArtifact.load(env.graph)
     if not skip_preflight:
         problems = preflight(env, graph)
@@ -227,7 +244,12 @@ def run(
     out.mkdir(parents=True)
     (out / "config.yaml").write_text(
         yaml.safe_dump(
-            {**config.model_dump(), "split": split, "graph_manifest": graph.meta.manifest_sha256}
+            {
+                **config.model_dump(),
+                "split": split,
+                "graph_manifest": graph.meta.manifest_sha256,
+                "git_commit": git("rev-parse", "HEAD"),
+            }
         ),
         encoding="utf-8",
     )

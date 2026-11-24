@@ -72,6 +72,8 @@ def test_splits_are_frozen_disjoint_and_stratified() -> None:
     dev, test, mini = (set(load_split(s)) for s in ("dev", "test", "dev_mini"))
     assert len(dev) == 60 and len(test) == 90 and len(mini) == 30
     assert not dev & test and dev | test == set(QUESTIONS) and mini <= dev
+    ci = set(load_split("ci"))
+    assert len(ci) == 20 and ci <= mini
     for cat, n in Counter(q.category for q in QUESTIONS.values()).items():
         in_dev = sum(1 for i in dev if QUESTIONS[i].category == cat)
         assert abs(in_dev - n * 0.4) <= 1

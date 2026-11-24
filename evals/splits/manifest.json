@@ -14,6 +14,10 @@
     "dev_mini": {
       "n": 30,
       "sha256": "f9469c2756cedf39cf279b9694636f08ad609a4ac8707a599888fc27e6360cf5"
+    },
+    "ci": {
+      "n": 20,
+      "sha256": "fc40676708eecebfcb0a630fe2e5ed4c7da64861d24f59cd65688d25876c3097"
     }
   }
 }
