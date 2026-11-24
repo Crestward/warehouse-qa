@@ -22,7 +22,7 @@ warehouse-qa = "warehouse_qa.cli:main"
 
 [tool.uv.sources]
 # Pinned to the Phase 9 commit until it merges and v0.3.0 is tagged (todo.md).
-warehouse-graph = { git = "https://github.com/Crestward/warehouse-graph", rev = "9c11515d38af9b6c95e88dffdb6de82d0114108d" }
+warehouse-graph = { git = "https://github.com/Crestward/warehouse-graph", rev = "df54a8684f2f81423054a380ecc1ff9be6ae17e1" }
 torch = [{ index = "pytorch-cpu" }]
 
 # CPU-only torch (via warehouse-graph's embedding model): the default Linux wheels pull in CUDA.
