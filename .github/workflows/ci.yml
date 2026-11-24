@@ -63,3 +63,14 @@ jobs:
       - run: uv run warehouse-qa eval validate
       - run: uv run warehouse-qa eval label --check
       - run: uv run pytest -q
+
+  # The README's demo on a clean machine, with no API key: build everything, then every example
+  # question must replay its recorded reply against the live warehouse.
+  demo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv run python scripts/demo.py --no-page
+      - run: uv run pytest -q tests/test_service.py
+      - run: uv run warehouse-qa ask --role marketing "List customers in Auckland with their email addresses."
